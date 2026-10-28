@@ -1,0 +1,2624 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>RzPaytren - Sistem Keuangan Pondok Pesantren</title>
+
+  <!-- PWA Manifest Data URI -->
+  <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22RzPaytren%20Pesantren%22%2C%22short_name%22%3A%22RzPaytren%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23ffffff%22%2C%22theme_color%22%3A%22%23047857%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fplacehold.co%2F192x192%2F047857%2Fffffff%3Ftext%3DRzP%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D">
+  <meta name="theme-color" content="#047857">
+
+  <!-- Tailwind CSS & Font Awesome Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065f46',
+              900: '#064e3b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Styling Dasar & Scrollbar Halus */
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      -webkit-tap-highlight-color: transparent;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    
+    /* Cetak Thermal & Kuitansi */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #printArea, #printArea * {
+        visibility: visible;
+      }
+      #printArea {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 10px;
+        background: white;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+
+    .thermal-paper {
+      width: 78mm;
+      max-width: 100%;
+      margin: 0 auto;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- ================= NOTIFIKASI TOAST / PESAN GLOBAL ================= -->
+  <div id="toastContainer" class="fixed top-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- ================= MODAL KONFIRMASI CUSTOM (GANTI ALERT/CONFIRM) ================= -->
+  <div id="confirmModal" class="fixed inset-0 z-[999] hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+    <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl border border-slate-100 transform transition-all">
+      <div class="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center text-xl mb-4">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <h3 id="confirmTitle" class="text-lg font-bold text-slate-900 mb-2">Konfirmasi Tindakan</h3>
+      <p id="confirmMessage" class="text-sm text-slate-600 mb-6">Apakah Anda yakin ingin melanjutkan tindakan ini?</p>
+      <div class="flex justify-end gap-3">
+        <button id="confirmBtnCancel" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition">Batal</button>
+        <button id="confirmBtnOk" class="px-5 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 shadow-md shadow-brand-600/20 transition">Ya, Lanjutkan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= HALAMAN LOGIN ADMIN ================= -->
+  <div id="loginScreen" class="fixed inset-0 z-[500] flex items-center justify-center bg-slate-50 p-4">
+    <div class="w-full max-w-md">
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-700 text-white shadow-xl shadow-brand-700/30 text-2xl mb-3">
+          <i class="fa-solid fa-mosque"></i>
+        </div>
+        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">RzPaytren</h1>
+        <p class="text-sm text-slate-500 mt-1">Sistem Keuangan & Kasir Pondok Pesantren</p>
+      </div>
+
+      <div class="bg-white p-7 sm:p-8 rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100">
+        <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+          <div>
+            <h2 class="text-lg font-bold text-slate-800">Masuk Bendahara</h2>
+            <p class="text-xs text-slate-500">Akses khusus admin keuangan pesantren</p>
+          </div>
+          <span id="badgeMode" class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Mode Siap</span>
+        </div>
+
+        <form id="loginForm" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Email Pengguna</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                <i class="fa-solid fa-envelope text-sm"></i>
+              </span>
+              <input type="email" id="loginEmail" required class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-500/20 transition" placeholder="bendahara@pesantren.id" value="admin@rzpaytren.com">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Kata Sandi</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                <i class="fa-solid fa-lock text-sm"></i>
+              </span>
+              <input type="password" id="loginPassword" required class="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-500/20 transition" placeholder="••••••••" value="admin123">
+              <button type="button" id="toggleLoginPassword" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600">
+                <i class="fa-regular fa-eye text-sm"></i>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" id="btnLoginSubmit" class="w-full py-3.5 px-4 rounded-xl bg-brand-700 hover:bg-brand-800 text-white font-bold text-sm tracking-wide shadow-lg shadow-brand-700/25 transition flex items-center justify-center gap-2">
+            <span>Masuk ke RzPaytren</span>
+            <i class="fa-solid fa-arrow-right text-xs"></i>
+          </button>
+        </form>
+
+        <div class="mt-6 pt-5 border-t border-slate-100 text-center">
+          <p class="text-xs text-slate-500">
+            Akun bawaan demo: <code class="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-mono">admin@rzpaytren.com</code> / <code class="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-mono">admin123</code>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= LAYOUT UTAMA APLIKASI (SETELAH LOGIN) ================= -->
+  <div id="appContainer" class="hidden min-h-screen flex flex-col md:flex-row pb-20 md:pb-0">
+
+    <!-- SIDEBAR TETAP (DESKTOP) -->
+    <aside class="hidden md:flex flex-col w-64 bg-white border-r border-slate-200/80 fixed inset-y-0 left-0 z-30 shadow-sm">
+      <div class="p-5 border-b border-slate-100 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-brand-700 text-white flex items-center justify-center shadow-md shadow-brand-700/20 text-lg">
+          <i class="fa-solid fa-mosque"></i>
+        </div>
+        <div>
+          <h2 class="font-extrabold text-slate-900 leading-tight">RzPaytren</h2>
+          <p id="sidePesantrenName" class="text-[11px] text-slate-500 font-medium truncate max-w-[130px]">Ponpes Al-Barakah</p>
+        </div>
+      </div>
+
+      <nav class="flex-1 p-3.5 space-y-1 overflow-y-auto">
+        <a href="#dashboard" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition active" data-page="dashboard">
+          <i class="fa-solid fa-chart-pie w-5 text-center text-slate-400"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="#santri" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition" data-page="santri">
+          <i class="fa-solid fa-user-graduate w-5 text-center text-slate-400"></i>
+          <span>Data Santri</span>
+        </a>
+        <a href="#tagihan" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition" data-page="tagihan">
+          <i class="fa-solid fa-file-invoice-dollar w-5 text-center text-slate-400"></i>
+          <span>Pos & Tagihan</span>
+        </a>
+        <a href="#kasir" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition" data-page="kasir">
+          <i class="fa-solid fa-cash-register w-5 text-center text-slate-400"></i>
+          <span>Kasir Pembayaran</span>
+        </a>
+        <a href="#tunggakan" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition" data-page="tunggakan">
+          <i class="fa-solid fa-clock-rotate-left w-5 text-center text-slate-400"></i>
+          <span>Pantau Tunggakan</span>
+        </a>
+        <a href="#laporan" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition" data-page="laporan">
+          <i class="fa-solid fa-book-bookmark w-5 text-center text-slate-400"></i>
+          <span>Laporan Kas</span>
+        </a>
+        <a href="#pengaturan" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition" data-page="pengaturan">
+          <i class="fa-solid fa-sliders w-5 text-center text-slate-400"></i>
+          <span>Pengaturan</span>
+        </a>
+      </nav>
+
+      <div class="p-3.5 border-t border-slate-100">
+        <div class="bg-slate-50 p-3 rounded-2xl flex items-center justify-between border border-slate-200/60">
+          <div class="flex items-center gap-2.5 overflow-hidden">
+            <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-bold">
+              <i class="fa-solid fa-user-shield"></i>
+            </div>
+            <div class="overflow-hidden">
+              <p id="userEmailBadge" class="text-xs font-bold text-slate-800 truncate">admin@rzpaytren.com</p>
+              <p class="text-[10px] text-slate-400">Bendahara Utama</p>
+            </div>
+          </div>
+          <button id="btnLogoutSide" title="Keluar Akun" class="text-slate-400 hover:text-rose-600 p-1.5 transition">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- FLOATING BOTTOM NAVIGATION (MOBILE ONLY) -->
+    <nav class="md:hidden fixed bottom-0 inset-x-0 bg-white/90 backdrop-blur-lg border-t border-slate-200/80 z-40 px-2 py-1 shadow-lg flex justify-around">
+      <a href="#dashboard" class="mobile-nav-item flex flex-col items-center py-1 px-2 text-slate-500 text-[10px] font-semibold active" data-page="dashboard">
+        <i class="fa-solid fa-chart-pie text-base mb-0.5"></i>
+        <span>Home</span>
+      </a>
+      <a href="#santri" class="mobile-nav-item flex flex-col items-center py-1 px-2 text-slate-500 text-[10px] font-semibold" data-page="santri">
+        <i class="fa-solid fa-user-graduate text-base mb-0.5"></i>
+        <span>Santri</span>
+      </a>
+      <a href="#kasir" class="mobile-nav-item flex flex-col items-center py-1 px-2 text-brand-600 text-[10px] font-bold" data-page="kasir">
+        <div class="w-9 h-9 rounded-full bg-brand-600 text-white flex items-center justify-center -mt-4 shadow-lg shadow-brand-600/30">
+          <i class="fa-solid fa-cash-register text-sm"></i>
+        </div>
+        <span class="mt-0.5">Kasir</span>
+      </a>
+      <a href="#tagihan" class="mobile-nav-item flex flex-col items-center py-1 px-2 text-slate-500 text-[10px] font-semibold" data-page="tagihan">
+        <i class="fa-solid fa-file-invoice text-base mb-0.5"></i>
+        <span>Tagihan</span>
+      </a>
+      <a href="#pengaturan" class="mobile-nav-item flex flex-col items-center py-1 px-2 text-slate-500 text-[10px] font-semibold" data-page="pengaturan">
+        <i class="fa-solid fa-bars text-base mb-0.5"></i>
+        <span>Menu</span>
+      </a>
+    </nav>
+
+    <!-- AREA KONTEN UTAMA -->
+    <main class="flex-1 md:ml-64 flex flex-col min-h-screen">
+      <!-- HEADER ATAS (MOBILE & DESKTOP) -->
+      <header class="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-8 py-3.5 flex items-center justify-between">
+        <div>
+          <h1 id="pageTitle" class="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">Dashboard Keuangan</h1>
+          <p id="pageSubtitle" class="text-xs text-slate-500 hidden sm:block">Ringkasan kas, realisasi pembayaran, dan status tunggakan santri</p>
+        </div>
+        <div class="flex items-center gap-2 sm:gap-3">
+          <div class="text-right hidden sm:block">
+            <span class="text-xs font-semibold text-slate-700 block" id="currentDateDisplay">Rabu, 28 Okt 2026</span>
+            <span class="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full inline-block">Sistem Aktif</span>
+          </div>
+          <button id="btnQuickKasir" class="hidden sm:inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-brand-700 hover:bg-brand-800 text-white text-xs font-bold shadow-md shadow-brand-700/20 transition">
+            <i class="fa-solid fa-plus text-xs"></i>
+            <span>Transaksi Baru</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- KONTEN HALAMAN DINAMIS -->
+      <div class="p-4 sm:p-8 flex-1">
+        
+        <!-- ================= PAGE 1: DASHBOARD ================= -->
+        <section id="view-dashboard" class="page-view space-y-6">
+          <!-- 4 KARTU METRIK UTAMA (PEMISAHAN JELAS ARUS KAS) -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- 1. KAS MASUK AKTUAL -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg">Kas Masuk Riil</span>
+                <div class="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-sm shadow-md shadow-emerald-600/20">
+                  <i class="fa-solid fa-wallet"></i>
+                </div>
+              </div>
+              <p class="text-2xl font-black text-slate-900 tracking-tight" id="dashKasMasuk">Rp 0</p>
+              <p class="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                <i class="fa-solid fa-circle-check text-emerald-500"></i> Uang fisik/transfer yang telah diterima
+              </p>
+            </div>
+
+            <!-- 2. TOTAL TAGIHAN TERBIT -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-sky-700 bg-sky-50 px-2.5 py-1 rounded-lg">Tagihan Terbit</span>
+                <div class="w-9 h-9 rounded-xl bg-sky-600 text-white flex items-center justify-center text-sm shadow-md shadow-sky-600/20">
+                  <i class="fa-solid fa-file-invoice"></i>
+                </div>
+              </div>
+              <p class="text-2xl font-black text-slate-900 tracking-tight" id="dashTagihanTerbit">Rp 0</p>
+              <p class="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                <i class="fa-solid fa-receipt text-sky-500"></i> Total potensi kewajiban santri
+              </p>
+            </div>
+
+            <!-- 3. REALISASI PEMBAYARAN -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg">Persentase Lunas</span>
+                <div class="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-sm shadow-md shadow-indigo-600/20">
+                  <i class="fa-solid fa-chart-line"></i>
+                </div>
+              </div>
+              <p class="text-2xl font-black text-slate-900 tracking-tight" id="dashRealisasiPersen">0%</p>
+              <div class="w-full bg-slate-100 h-1.5 rounded-full mt-2.5 overflow-hidden">
+                <div id="dashProgressBar" class="bg-indigo-600 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <!-- 4. TOTAL SISA TUNGGAKAN -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-rose-700 bg-rose-50 px-2.5 py-1 rounded-lg">Sisa Tunggakan</span>
+                <div class="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center text-sm shadow-md shadow-rose-600/20">
+                  <i class="fa-solid fa-hourglass-half"></i>
+                </div>
+              </div>
+              <p class="text-2xl font-black text-rose-600 tracking-tight" id="dashTotalTunggakan">Rp 0</p>
+              <p class="text-xs text-rose-500 mt-1 flex items-center gap-1">
+                <i class="fa-solid fa-circle-exclamation"></i> Piutang aktif yang harus ditagih
+              </p>
+            </div>
+          </div>
+
+          <!-- KONTEN DUA KOLOM: TUNGGAKAN PERLU FOLLOW UP & TRANSAKSI TERAKHIR -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Kolom Kiri: Riwayat Transaksi Terbaru (2 Span) -->
+            <div class="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+              <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                <div class="flex items-center gap-2">
+                  <div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
+                  <h3 class="font-bold text-slate-800 text-sm">Transaksi Masuk Terbaru</h3>
+                </div>
+                <button onclick="navigateTo('laporan')" class="text-xs font-semibold text-brand-700 hover:underline">Lihat Semua</button>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                  <thead>
+                    <tr class="text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                      <th class="py-2.5 font-bold">No Kuitansi</th>
+                      <th class="py-2.5 font-bold">Santri</th>
+                      <th class="py-2.5 font-bold">Pos Biaya</th>
+                      <th class="py-2.5 font-bold text-right">Nominal</th>
+                      <th class="py-2.5 font-bold text-center">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dashTableRecentTx" class="divide-y divide-slate-50 text-slate-700">
+                    <tr><td colspan="5" class="py-4 text-center text-slate-400">Belum ada transaksi tercatat</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Kolom Kanan: Ringkasan Santri & Shortcut Cepat (1 Span) -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex flex-col justify-between">
+              <div>
+                <h3 class="font-bold text-slate-800 text-sm mb-3">Status Populasi Santri</h3>
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                    <span class="text-xs text-slate-600 font-medium">Total Santri Aktif</span>
+                    <span id="dashTotalSantri" class="text-sm font-bold text-slate-900">0 Santri</span>
+                  </div>
+                  <div class="flex items-center justify-between p-3 rounded-xl bg-emerald-50 border border-emerald-100">
+                    <span class="text-xs text-emerald-800 font-medium">Santri Bebas Tunggakan</span>
+                    <span id="dashSantriLunas" class="text-sm font-bold text-emerald-700">0 Santri</span>
+                  </div>
+                  <div class="flex items-center justify-between p-3 rounded-xl bg-rose-50 border border-rose-100">
+                    <span class="text-xs text-rose-800 font-medium">Santri Ada Tunggakan</span>
+                    <span id="dashSantriNunggak" class="text-sm font-bold text-rose-700">0 Santri</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-5 pt-4 border-t border-slate-100">
+                <button onclick="navigateTo('kasir')" class="w-full py-3 rounded-xl bg-brand-700 hover:bg-brand-800 text-white font-bold text-xs shadow-md shadow-brand-700/20 transition flex items-center justify-center gap-2">
+                  <i class="fa-solid fa-cash-register"></i>
+                  <span>Buka Kasir Pembayaran</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= PAGE 2: DATA SANTRI ================= -->
+        <section id="view-santri" class="page-view hidden space-y-5">
+          <!-- Toolbar Santri -->
+          <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            <div class="flex flex-1 items-center gap-2">
+              <div class="relative flex-1 max-w-md">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                  <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                </span>
+                <input type="text" id="searchSantriInput" placeholder="Cari NIS, Nama, Kelas, atau Asrama..." class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-brand-600">
+              </div>
+              <select id="filterKelasSantri" class="py-2 px-3 rounded-xl border border-slate-200 text-xs font-medium text-slate-600 bg-white">
+                <option value="">Semua Kelas</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="btnExportSantriCsv" class="px-3.5 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-file-arrow-down text-slate-500"></i>
+                <span class="hidden sm:inline">Export CSV</span>
+              </button>
+              <button id="btnOpenModalSantri" class="px-4 py-2 rounded-xl bg-brand-700 hover:bg-brand-800 text-white text-xs font-bold shadow-md shadow-brand-700/20 flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-user-plus text-xs"></i>
+                <span>Tambah Santri</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Tabel Santri -->
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr class="bg-slate-50/70 text-slate-500 uppercase tracking-wider border-b border-slate-200/60 font-bold">
+                    <th class="py-3 px-4">NIS</th>
+                    <th class="py-3 px-4">Nama Lengkap</th>
+                    <th class="py-3 px-4">Kelas & Asrama</th>
+                    <th class="py-3 px-4">Wali Santri</th>
+                    <th class="py-3 px-4">No. WhatsApp</th>
+                    <th class="py-3 px-4 text-center">Status</th>
+                    <th class="py-3 px-4 text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="santriTableBody" class="divide-y divide-slate-100 text-slate-700">
+                  <tr><td colspan="7" class="py-8 text-center text-slate-400">Memuat data santri...</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="p-3.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+              <span id="santriCountInfo">Menampilkan 0 santri</span>
+              <div class="flex gap-1" id="santriPagination"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= PAGE 3: POS BIAYA & GENERATE TAGIHAN ================= -->
+        <section id="view-tagihan" class="page-view hidden space-y-6">
+          <!-- Tab Navigasi Sub-Halaman Tagihan -->
+          <div class="flex items-center gap-2 border-b border-slate-200 pb-2">
+            <button class="sub-tab-btn active px-4 py-2 rounded-xl text-xs font-bold bg-brand-700 text-white transition" data-target="subview-daftar-tagihan">
+              Daftar Tagihan Santri
+            </button>
+            <button class="sub-tab-btn px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition" data-target="subview-pos-biaya">
+              Katalog Pos Biaya (Tarif)
+            </button>
+          </div>
+
+          <!-- SUBVIEW A: DAFTAR TAGIHAN & GENERATOR MASSAL -->
+          <div id="subview-daftar-tagihan" class="sub-page-view space-y-4">
+            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+              <div class="flex flex-1 flex-wrap items-center gap-2">
+                <input type="text" id="searchTagihanInput" placeholder="Cari NIS, Nama santri, atau Pos..." class="px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-brand-600 min-w-[200px]">
+                <select id="filterStatusTagihan" class="py-2 px-3 rounded-xl border border-slate-200 text-xs font-medium text-slate-600 bg-white">
+                  <option value="">Semua Status</option>
+                  <option value="BELUM">Belum Bayar</option>
+                  <option value="CICIL">Dicicil Sebagian</option>
+                  <option value="LUNAS">Lunas</option>
+                </select>
+                <select id="filterPosTagihan" class="py-2 px-3 rounded-xl border border-slate-200 text-xs font-medium text-slate-600 bg-white">
+                  <option value="">Semua Pos Biaya</option>
+                </select>
+              </div>
+              <div class="flex items-center gap-2">
+                <button id="btnOpenModalGenMassal" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-md shadow-amber-600/20 flex items-center gap-1.5 transition">
+                  <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
+                  <span>Terbitkan Massal</span>
+                </button>
+                <button id="btnOpenModalTagihanSingle" class="px-4 py-2 rounded-xl bg-brand-700 hover:bg-brand-800 text-white text-xs font-bold shadow-md shadow-brand-700/20 flex items-center gap-1.5 transition">
+                  <i class="fa-solid fa-plus text-xs"></i>
+                  <span>Tagihan Khusus</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                  <thead>
+                    <tr class="bg-slate-50/70 text-slate-500 uppercase tracking-wider border-b border-slate-200/60 font-bold">
+                      <th class="py-3 px-4">ID Tagihan</th>
+                      <th class="py-3 px-4">Santri</th>
+                      <th class="py-3 px-4">Pos Biaya & Periode</th>
+                      <th class="py-3 px-4 text-right">Nominal</th>
+                      <th class="py-3 px-4 text-right">Terbayar</th>
+                      <th class="py-3 px-4 text-right">Sisa Tunggakan</th>
+                      <th class="py-3 px-4 text-center">Status</th>
+                      <th class="py-3 px-4 text-center">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tagihanTableBody" class="divide-y divide-slate-100 text-slate-700">
+                    <tr><td colspan="8" class="py-8 text-center text-slate-400">Memuat data tagihan...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUBVIEW B: KATALOG POS BIAYA -->
+          <div id="subview-pos-biaya" class="sub-page-view hidden space-y-4">
+            <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+              <div>
+                <h3 class="font-bold text-slate-800 text-sm">Daftar Pos Tarif Keuangan</h3>
+                <p class="text-xs text-slate-400">Kelola pos iuran bulanan (Syahriah) maupun insidental (Kitab, Gedung)</p>
+              </div>
+              <button id="btnOpenModalPos" class="px-4 py-2 rounded-xl bg-brand-700 hover:bg-brand-800 text-white text-xs font-bold transition flex items-center gap-1.5">
+                <i class="fa-solid fa-plus text-xs"></i>
+                <span>Tambah Pos Biaya</span>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="posBiayaListContainer">
+              <!-- Render pos biaya cards -->
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= PAGE 4: KASIR PEMBAYARAN & CETAK KUITANSI ================= -->
+        <section id="view-kasir" class="page-view hidden space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Kolom Kiri: Pemilihan Santri & Info Tunggakan (5 Span) -->
+            <div class="lg:col-span-5 space-y-4">
+              <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">1. Pilih / Cari Santri</label>
+                <div class="relative">
+                  <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                    <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                  </span>
+                  <input type="text" id="kasirSearchSantri" placeholder="Ketik NIS atau Nama Santri..." class="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-brand-600">
+                </div>
+
+                <!-- Dropdown Pencarian Hasil Cepat -->
+                <div id="kasirSantriSearchResults" class="hidden mt-2 max-h-48 overflow-y-auto border border-slate-200 rounded-xl bg-white shadow-lg divide-y divide-slate-100 text-xs z-10"></div>
+
+                <!-- Kartu Identitas Santri Terpilih -->
+                <div id="kasirSantriCard" class="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200/80 hidden">
+                  <div class="flex items-start justify-between">
+                    <div>
+                      <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-100 text-emerald-800" id="kasirSantriNis">NIS 00000</span>
+                      <h4 class="font-bold text-slate-900 text-sm mt-1" id="kasirSantriNama">Nama Santri</h4>
+                      <p class="text-xs text-slate-500 mt-0.5" id="kasirSantriKelasKamar">Kelas 1A • Asrama Abu Bakar</p>
+                    </div>
+                    <button id="btnResetSantriKasir" class="text-slate-400 hover:text-rose-500 text-xs p-1" title="Batalkan Pilihan">
+                      <i class="fa-solid fa-xmark"></i>
+                    </button>
+                  </div>
+                  <div class="mt-3 pt-3 border-t border-slate-200 text-xs flex justify-between text-slate-600">
+                    <span>Wali: <b id="kasirSantriWali">-</b></span>
+                    <span>WA: <b id="kasirSantriWa">-</b></span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Rekap Tagihan Belum Lunas Santri Ini -->
+              <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                  <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider">2. Tagihan Aktif Santri</h4>
+                  <span id="kasirCountTagihan" class="text-[11px] font-semibold text-slate-500">0 tagihan</span>
+                </div>
+                <div id="kasirTagihanList" class="space-y-2 max-h-72 overflow-y-auto pr-1">
+                  <p class="text-xs text-slate-400 py-6 text-center">Pilih santri terlebih dahulu untuk menampilkan tagihan yang belum lunas.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Kolom Kanan: Form Eksekusi Pembayaran Kasir (7 Span) -->
+            <div class="lg:col-span-7">
+              <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-5">
+                <div class="border-b border-slate-100 pb-3">
+                  <h3 class="font-extrabold text-slate-900 text-base">3. Rincian Penerimaan Kas</h3>
+                  <p class="text-xs text-slate-400">Pastikan nominal dan rincian pos tagihan sudah benar sebelum memproses</p>
+                </div>
+
+                <div class="bg-emerald-50/70 p-4 rounded-xl border border-emerald-100">
+                  <p class="text-xs text-emerald-800 font-semibold mb-1">Tagihan Yang Dipilih:</p>
+                  <p id="kasirSelectedPosName" class="font-bold text-slate-900 text-sm">Belum ada tagihan yang dipilih</p>
+                  <div class="flex justify-between items-center mt-2 text-xs text-slate-600">
+                    <span>Sisa Kewajiban Tagihan Ini:</span>
+                    <span id="kasirSelectedSisa" class="font-bold text-rose-600 text-sm">Rp 0</span>
+                  </div>
+                </div>
+
+                <div class="space-y-4">
+                  <!-- Mode Pembayaran: Penuh atau Cicil -->
+                  <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Tipe Pembayaran</label>
+                    <div class="grid grid-cols-2 gap-3">
+                      <label class="flex items-center gap-2 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50/50">
+                        <input type="radio" name="bayarType" value="LUNAS" checked class="text-brand-600 focus:ring-brand-500">
+                        <div>
+                          <span class="block text-xs font-bold text-slate-800">Bayar Lunas</span>
+                          <span class="block text-[10px] text-slate-400">Bayar seluruh sisa tunggakan</span>
+                        </div>
+                      </label>
+                      <label class="flex items-center gap-2 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50/50">
+                        <input type="radio" name="bayarType" value="CICIL" class="text-brand-600 focus:ring-brand-500">
+                        <div>
+                          <span class="block text-xs font-bold text-slate-800">Cicilan / Sebagian</span>
+                          <span class="block text-[10px] text-slate-400">Bayar sebagian nominal</span>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  <!-- Nominal Pembayaran -->
+                  <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Nominal Yang Diterima (Rp)</label>
+                    <div class="relative">
+                      <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center font-bold text-slate-400 text-sm">Rp</span>
+                      <input type="number" id="kasirNominalBayar" min="1000" class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 text-base font-bold text-slate-900 focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-500/20" placeholder="0">
+                    </div>
+                    <p id="kasirNominalWarning" class="text-[11px] text-rose-500 mt-1 hidden"></p>
+                  </div>
+
+                  <!-- Metode Bayar & Catatan -->
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Metode Kas</label>
+                      <select id="kasirMetode" class="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-700 bg-white focus:outline-none focus:border-brand-600">
+                        <option value="TUNAI">Uang Tunai (Cash di Kasir)</option>
+                        <option value="TRANSFER">Transfer Bank / QRIS</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Catatan (Opsional)</label>
+                      <input type="text" id="kasirCatatan" placeholder="Cth: Titipan wali / bukti transfer" class="w-full p-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-brand-600">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tombol Submit Bayar Anti-Double-Click -->
+                <button type="button" id="btnSubmitPembayaran" disabled class="w-full py-4 rounded-xl bg-slate-300 text-white font-extrabold text-sm tracking-wide transition shadow-lg flex items-center justify-center gap-2 cursor-not-allowed">
+                  <i class="fa-solid fa-lock"></i>
+                  <span>Simpan Pembayaran & Terbitkan Kuitansi</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= PAGE 5: PEMANTAUAN TUNGGAKAN ================= -->
+        <section id="view-tunggakan" class="page-view hidden space-y-5">
+          <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            <div class="flex flex-1 flex-wrap items-center gap-2">
+              <input type="text" id="searchTunggakanInput" placeholder="Cari santri menunggak..." class="px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-brand-600 min-w-[200px]">
+              <select id="filterKelasTunggakan" class="py-2 px-3 rounded-xl border border-slate-200 text-xs font-medium text-slate-600 bg-white">
+                <option value="">Semua Kelas</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-slate-500 font-medium">Total Akumulasi Piutang:</span>
+              <span id="tunggakanTotalAccum" class="text-sm font-extrabold text-rose-600 bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-100">Rp 0</span>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr class="bg-slate-50/70 text-slate-500 uppercase tracking-wider border-b border-slate-200/60 font-bold">
+                    <th class="py-3 px-4">Santri</th>
+                    <th class="py-3 px-4">Kelas & Asrama</th>
+                    <th class="py-3 px-4">Wali Santri</th>
+                    <th class="py-3 px-4">Rincian Pos Tertunggak</th>
+                    <th class="py-3 px-4 text-right">Total Tunggakan</th>
+                    <th class="py-3 px-4 text-center">Tindakan WA</th>
+                  </tr>
+                </thead>
+                <tbody id="tunggakanTableBody" class="divide-y divide-slate-100 text-slate-700">
+                  <tr><td colspan="6" class="py-8 text-center text-slate-400">Memuat rekapitulasi tunggakan...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= PAGE 6: LAPORAN KEUANGAN & AUDIT KAS ================= -->
+        <section id="view-laporan" class="page-view hidden space-y-6">
+          <!-- Filter Laporan & Rentang Tanggal -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+            <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+              <div>
+                <h3 class="font-bold text-slate-800 text-sm">Rekapitulasi Arus Kas Pesantren</h3>
+                <p class="text-xs text-slate-400">Pemisahan mutlak antara piutang terbit dengan uang kas masuk aktual</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button id="btnExportLaporanCsv" class="px-3.5 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold flex items-center gap-1.5 transition">
+                  <i class="fa-solid fa-file-excel text-emerald-600"></i>
+                  <span>Ekspor Laporan (CSV)</span>
+                </button>
+                <button onclick="window.print()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold flex items-center gap-1.5 transition">
+                  <i class="fa-solid fa-print"></i>
+                  <span>Cetak Rekap</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-500 mb-1">Mulai Tanggal</label>
+                <input type="date" id="lapFilterStartDate" class="w-full p-2 rounded-xl border border-slate-200 text-xs">
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-500 mb-1">Sampai Tanggal</label>
+                <input type="date" id="lapFilterEndDate" class="w-full p-2 rounded-xl border border-slate-200 text-xs">
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-500 mb-1">Metode Penerimaan</label>
+                <select id="lapFilterMetode" class="w-full p-2 rounded-xl border border-slate-200 text-xs bg-white">
+                  <option value="">Semua (Tunai & Transfer)</option>
+                  <option value="TUNAI">Tunai Saja</option>
+                  <option value="TRANSFER">Transfer Saja</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabel Riwayat Transaksi Kas Aktual (Audit Trail) -->
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+              <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider">Jurnal Transaksi Kas Masuk</h4>
+              <span id="lapSubtotalKas" class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg">Total Masuk: Rp 0</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr class="bg-slate-50/70 text-slate-500 uppercase tracking-wider border-b border-slate-200/60 font-bold">
+                    <th class="py-3 px-4">No Kuitansi</th>
+                    <th class="py-3 px-4">Waktu</th>
+                    <th class="py-3 px-4">Santri</th>
+                    <th class="py-3 px-4">Pos Biaya</th>
+                    <th class="py-3 px-4">Metode</th>
+                    <th class="py-3 px-4 text-right">Nominal Masuk</th>
+                    <th class="py-3 px-4 text-center">Kuitansi / WA</th>
+                  </tr>
+                </thead>
+                <tbody id="lapTableBody" class="divide-y divide-slate-100 text-slate-700">
+                  <tr><td colspan="7" class="py-8 text-center text-slate-400">Memuat jurnal kas...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= PAGE 7: PENGATURAN & BACKUP ================= -->
+        <section id="view-pengaturan" class="page-view hidden space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- 1. IDENTITAS PESANTREN (UNTUK KOP & KUITANSI) -->
+            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+              <div class="border-b border-slate-100 pb-3">
+                <h3 class="font-extrabold text-slate-900 text-sm">Profil Pondok Pesantren</h3>
+                <p class="text-xs text-slate-400">Identitas ini akan dicetak pada seluruh kuitansi dan pesan WhatsApp</p>
+              </div>
+              <form id="formProfilPesantren" class="space-y-3">
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">Nama Pondok Pesantren</label>
+                  <input type="text" id="cfgNamaPesantren" class="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-semibold" value="Pondok Pesantren Al-Barakah">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">Alamat Lembaga</label>
+                  <input type="text" id="cfgAlamatPesantren" class="w-full p-2.5 rounded-xl border border-slate-200 text-xs" value="Jl. Pesantren No. 99, Jawa Timur">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">No. Kontak / WA</label>
+                    <input type="text" id="cfgKontakPesantren" class="w-full p-2.5 rounded-xl border border-slate-200 text-xs" value="081234567890">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Nama Bendahara</label>
+                    <input type="text" id="cfgBendaharaPesantren" class="w-full p-2.5 rounded-xl border border-slate-200 text-xs" value="Ust. Ahmad Fauzi, S.Pd.">
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">Nomor Rekening Resmi (Untuk Tagihan WA)</label>
+                  <input type="text" id="cfgRekeningPesantren" class="w-full p-2.5 rounded-xl border border-slate-200 text-xs" value="Bank Syariah Indonesia (BSI): 7123-4567-89 a.n Pondok Pesantren Al-Barakah">
+                </div>
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-brand-700 hover:bg-brand-800 text-white text-xs font-bold transition shadow-sm">
+                  Simpan Profil Pesantren
+                </button>
+              </form>
+            </div>
+
+            <!-- 2. KEAMANAN & UBAH PASSWORD ADMIN -->
+            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+              <div class="border-b border-slate-100 pb-3">
+                <h3 class="font-extrabold text-slate-900 text-sm">Keamanan Akun Bendahara</h3>
+                <p class="text-xs text-slate-400">Ubah kata sandi login Admin untuk melindungi data keuangan</p>
+              </div>
+              <form id="formGantiPassword" class="space-y-3">
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">Kata Sandi Baru</label>
+                  <input type="password" id="cfgNewPassword" minlength="6" required class="w-full p-2.5 rounded-xl border border-slate-200 text-xs" placeholder="Minimal 6 karakter">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">Ulangi Kata Sandi Baru</label>
+                  <input type="password" id="cfgConfirmPassword" minlength="6" required class="w-full p-2.5 rounded-xl border border-slate-200 text-xs" placeholder="Konfirmasi sandi baru">
+                </div>
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition shadow-sm">
+                  Perbarui Kata Sandi
+                </button>
+              </form>
+            </div>
+
+            <!-- 3. CADANGAN & PEMULIHAN (BACKUP & RESTORE) -->
+            <div class="lg:col-span-2 bg-white p-5 sm:p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+              <div class="border-b border-slate-100 pb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div>
+                  <h3 class="font-extrabold text-slate-900 text-sm">Pusat Cadangan & Pemulihan Data (Backup & Restore)</h3>
+                  <p class="text-xs text-slate-400">Unduh seluruh basis data secara berkala untuk menjaga keutuhan data ribuan santri</p>
+                </div>
+                <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                  <i class="fa-solid fa-shield-halved"></i> Aman & Portabel
+                </span>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between">
+                  <div>
+                    <h4 class="font-bold text-slate-800 text-xs mb-1">Ekspor Cadangan (Backup JSON)</h4>
+                    <p class="text-xs text-slate-500 mb-4">Menghasilkan satu berkas JSON lengkap mencakup data santri, pos biaya, tagihan, dan riwayat mutasi kasir.</p>
+                  </div>
+                  <button id="btnDownloadBackup" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-download"></i>
+                    <span>Unduh Cadangan Sekarang</span>
+                  </button>
+                </div>
+
+                <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between">
+                  <div>
+                    <h4 class="font-bold text-slate-800 text-xs mb-1">Pemulihan Data (Restore JSON)</h4>
+                    <p class="text-xs text-slate-500 mb-4">Pulihkan data keuangan dari berkas cadangan JSON yang pernah Anda unduh sebelumnya.</p>
+                  </div>
+                  <label class="w-full py-2.5 rounded-xl border-2 border-dashed border-slate-300 hover:border-brand-600 bg-white text-slate-700 font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer">
+                    <i class="fa-solid fa-upload text-brand-600"></i>
+                    <span>Pilih Berkas Cadangan JSON</span>
+                    <input type="file" id="inputRestoreFile" accept=".json" class="hidden">
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ================= MODAL TAMBAH / EDIT SANTRI ================= -->
+  <div id="modalSantri" class="fixed inset-0 z-[600] hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 overflow-y-auto">
+    <div class="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl border border-slate-100 my-8">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+        <h3 id="modalSantriTitle" class="text-base font-extrabold text-slate-900">Tambah Data Santri</h3>
+        <button class="modal-close-btn text-slate-400 hover:text-slate-600" data-modal="modalSantri">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <form id="formSantri" class="space-y-3.5">
+        <input type="hidden" id="santriDocId">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">NIS (Nomor Induk)</label>
+            <input type="text" id="santriNis" required class="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-mono font-bold" placeholder="Cth: 20260101">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Kelas / Tingkat</label>
+            <input type="text" id="santriKelas" required class="w-full p-2.5 rounded-xl border border-slate-200 text-xs" placeholder="Cth: 1 MTs A">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Nama Lengkap Santri</label>
+          <input type="text" id="santriNama" required class="w-full p-2.5 rounded-xl border border-slate-200 text-xs" placeholder="Nama lengkap sesuai KK">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Kamar / Asrama</label>
+            <input type="text" id="santriKamar" required class="w-full p-2.5 rounded-xl border border-slate-200 text-xs" placeholder="Cth: Asrama Umar 03">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Nama Wali Santri</label>
+            <input type="text" id="santriWali" required class="w-full p-2.5 rounded-xl border border-slate-200 text-xs" placeholder="Ayah / Ibu">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Nomor WhatsApp Wali</label>
+            <input type="text" id="santriWa" required class="w-full p-2.5 rounded-xl border border-slate-200 text-xs" placeholder="Cth: 08123456789">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Status Keaktifan</label>
+            <select id="santriStatus" class="w-full p-2.5 rounded-xl border border-slate-200 text-xs bg-white">
+              <option value="AKTIF">Aktif</option>
+              <option value="NONAKTIF">Nonaktif / Cuti</option>
+              <option value="ALUMNI">Alumni</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" class="modal-close-btn px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold" data-modal="modalSantri">Batal</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-brand-700 hover:bg-brand-800 text-white text-xs font-bold shadow-md shadow-brand-700/20">Simpan Santri</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL GENERATE TAGIHAN MASSAL ================= -->
+  <div id="modalGenMassal" class="fixed inset-0 z-[600] hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+    <div class="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl border border-slate-100">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+        <div>
+          <h3 class="text-base font-extrabold text-slate-900">Terbitkan Tagihan Massal</h3>
+          <p class="text-xs text-slate-400">Sistem otomatis mendeteksi & mencegah tagihan ganda</p>
+        </div>
+        <button class="modal-close-btn text-slate-400 hover:text-slate-600" data-modal="modalGenMassal">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <form id="formGenMassal" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Pos Biaya</label>
+          <select id="genMassalPos" required class="w-full p-2.5 rounded-xl border border-slate-200 text-xs bg-white"></select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Periode Bulan/Tahun</label>
+            <input type="month" id="genMassalPeriode" required class="w-full p-2.5 rounded-xl border border-slate-200 text-xs">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Target Santri</label>
+            <select id="genMassalTarget" class="w-full p-2.5 rounded-xl border border-slate-200 text-xs bg-white">
+              <option value="SEMUA">Semua Santri Aktif</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Nominal per Santri (Rp)</label>
+          <input type="number" id="genMassalNominal" required min="1000" class="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-bold">
+        </div>
+        <div class="p-3 bg-amber-50 rounded-xl border border-amber-100 text-xs text-amber-800 flex items-start gap-2">
+          <i class="fa-solid fa-shield-check text-amber-600 mt-0.5"></i>
+          <span>Proteksi Anti-Duplikasi: Jika santri telah memiliki tagihan untuk pos & periode yang sama, proses akan melewatinya secara otomatis.</span>
+        </div>
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" class="modal-close-btn px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold" data-modal="modalGenMassal">Batal</button>
+          <button type="submit" id="btnSubmitGenMassal" class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-md shadow-amber-600/20">Mulai Generate</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL TAMBAH POS BIAYA ================= -->
+  <div id="modalPosBiaya" class="fixed inset-0 z-[600] hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+    <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl border border-slate-100">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+        <h3 class="text-base font-extrabold text-slate-900">Tambah Pos Biaya</h3>
+        <button class="modal-close-btn text-slate-400 hover:text-slate-600" data-modal="modalPosBiaya">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <form id="formPosBiaya" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Kode Pos (Unik)</label>
+          <input type="text" id="posKode" required placeholder="Cth: SPP, GEDUNG, KITAB" class="w-full p-2.5 rounded-xl border border-slate-200 text-xs uppercase font-mono font-bold">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Nama Pos Biaya</label>
+          <input type="text" id="posNama" required placeholder="Cth: Syahriah / SPP Bulanan" class="w-full p-2.5 rounded-xl border border-slate-200 text-xs">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Tipe</label>
+            <select id="posTipe" class="w-full p-2.5 rounded-xl border border-slate-200 text-xs bg-white">
+              <option value="BULANAN">Bulanan (Rutin)</option>
+              <option value="INSIDENTAL">Insidental (Sekali)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Tarif Standar (Rp)</label>
+            <input type="number" id="posNominal" required min="1000" placeholder="500000" class="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-bold">
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" class="modal-close-btn px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold" data-modal="modalPosBiaya">Batal</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-brand-700 hover:bg-brand-800 text-white text-xs font-bold shadow-md shadow-brand-700/20">Simpan Pos</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL KUITANSI PEMBAYARAN & WHATSAPP ================= -->
+  <div id="modalKuitansi" class="fixed inset-0 z-[700] hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+    <div class="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-slate-100 my-6">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 no-print">
+        <div class="flex items-center gap-2 text-emerald-700">
+          <i class="fa-solid fa-circle-check text-xl"></i>
+          <span class="font-extrabold text-sm">Pembayaran Berhasil Dicatat</span>
+        </div>
+        <button class="modal-close-btn text-slate-400 hover:text-slate-600" data-modal="modalKuitansi">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- AREA CETAK KUITANSI -->
+      <div id="printArea" class="py-4 text-slate-800">
+        <!-- Tampilan Kuitansi Formal / Kertas Mini -->
+        <div class="border border-slate-200 rounded-2xl p-5 bg-white space-y-4">
+          <div class="text-center border-b border-dashed border-slate-300 pb-3">
+            <h2 class="font-black text-base text-slate-900 uppercase tracking-wide" id="kwtPesantrenName">PONDOK PESANTREN AL-BARAKAH</h2>
+            <p class="text-[11px] text-slate-500" id="kwtPesantrenAlamat">Jl. Pesantren No. 99, Jawa Timur</p>
+            <p class="text-[10px] text-slate-400 mt-0.5">KUITANSI PEMBAYARAN RESMI</p>
+          </div>
+
+          <div class="text-xs space-y-1.5">
+            <div class="flex justify-between">
+              <span class="text-slate-500">No. Kuitansi:</span>
+              <span class="font-mono font-bold text-slate-900" id="kwtNoKuitansi">KWT-20261028-0001</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">Tanggal:</span>
+              <span id="kwtTanggal">-</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">Santri:</span>
+              <span class="font-bold text-slate-900" id="kwtSantriNama">-</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">NIS / Kelas:</span>
+              <span id="kwtSantriNisKelas">-</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">Jenis Pembayaran:</span>
+              <span class="font-semibold text-slate-800" id="kwtPosName">-</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">Metode:</span>
+              <span id="kwtMetode">-</span>
+            </div>
+          </div>
+
+          <div class="border-t border-b border-dashed border-slate-300 py-3 my-2 flex justify-between items-center">
+            <span class="text-xs font-extrabold uppercase text-slate-700">Jumlah Dibayar</span>
+            <span class="text-lg font-black text-emerald-700" id="kwtNominalBayar">Rp 0</span>
+          </div>
+
+          <div class="text-xs space-y-1 text-slate-500">
+            <div class="flex justify-between">
+              <span>Sisa Tunggakan Pos Ini:</span>
+              <span class="font-bold text-rose-600" id="kwtSisaTunggakan">Rp 0</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Status Tagihan:</span>
+              <span class="font-bold uppercase text-slate-700" id="kwtStatusTagihan">LUNAS</span>
+            </div>
+          </div>
+
+          <div class="pt-4 flex justify-between items-end text-[10px] text-slate-500 border-t border-slate-100">
+            <div class="text-center w-28">
+              <p>Wali Santri,</p>
+              <div class="h-10"></div>
+              <p>( ......................... )</p>
+            </div>
+            <div class="text-center w-36">
+              <p>Bendahara Pesantren,</p>
+              <div class="h-10"></div>
+              <p class="font-bold text-slate-800" id="kwtBendaharaNama">Ust. Ahmad Fauzi</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TOMBOL AKSI KUITANSI -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 pt-3 border-t border-slate-100 no-print">
+        <button id="btnCetakKuitansi" class="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs flex items-center justify-center gap-2 transition">
+          <i class="fa-solid fa-print"></i>
+          <span>Cetak Kuitansi</span>
+        </button>
+        <button id="btnSendKuitansiWa" class="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition shadow-md shadow-emerald-600/20">
+          <i class="fa-brands fa-whatsapp text-sm"></i>
+          <span>Kirim Notifikasi WA</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= LOGIKA APLIKASI (JAVASCRIPT) ================= -->
+  <script type="module">
+    // ==========================================
+    // 1. SAKLAR DEPLOYMENT & FIREBASE CONFIG
+    // ==========================================
+    const IS_PREVIEW = false; // Set false JIKA SUDAH TERHUBUNG KE FIREBASE PRODUCTION
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCzTQ3RP3V7pv_c_dRZlircm70aAGhyo5w",
+      authDomain: "app-pondok-60dd3.firebaseapp.com",
+      projectId: "app-pondok-60dd3",
+      storageBucket: "app-pondok-60dd3.firebasestorage.app",
+      messagingSenderId: "1044030730593",
+      appId: "1:1044030730593:web:98bcf2326e8af7d0645520"
+    };
+
+    // Firebase Imports
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { 
+      getAuth, 
+      signInWithEmailAndPassword, 
+      signOut, 
+      onAuthStateChanged,
+      updatePassword
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { 
+      getFirestore, 
+      collection, 
+      doc, 
+      setDoc, 
+      getDoc, 
+      getDocs, 
+      addDoc, 
+      updateDoc, 
+      deleteDoc 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    let app = null;
+    let auth = null;
+    let db = null;
+
+    if (!IS_PREVIEW) {
+      try {
+        app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getFirestore(app);
+      } catch (err) {
+        console.warn("Gagal inisialisasi Firebase produksi, beralih ke engine memori:", err);
+      }
+    }
+
+    // ==========================================
+    // 2. STATE STORAGE MURNI CLIENT-SIDE / PREVIEW
+    // ==========================================
+    let currentUser = null;
+    let activePage = 'dashboard';
+    let currentKuitansiData = null;
+
+    // Database Koleksi
+    let dbState = {
+      profil: {
+        nama_pesantren: "Pondok Pesantren Al-Barakah",
+        alamat: "Jl. Pesantren No. 99, Jawa Timur",
+        kontak: "081234567890",
+        bendahara: "Ust. Ahmad Fauzi, S.Pd.",
+        rekening: "Bank Syariah Indonesia (BSI): 7123-4567-89 a.n Pondok Pesantren Al-Barakah",
+        password_admin: "admin123"
+      },
+      santri: [],
+      pos_biaya: [],
+      tagihan: [],
+      transaksi: []
+    };
+
+    // Helper Rupiah
+    function formatRupiah(num) {
+      return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
+    }
+
+    // Format Tanggal
+    function formatTanggalIndo(dateStr) {
+      if (!dateStr) return '-';
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    // ==========================================
+    // 3. AUTO SETUP DATABASE DENGAN DATA DUMMY
+    // ==========================================
+    function autoSetupDatabase() {
+      // Periksa apakah data santri masih kosong
+      if (dbState.santri.length === 0) {
+        dbState.santri = [
+          { id: "S001", nis: "202601", nama: "Ahmad Royhan", kelas: "1 MTs A", kamar: "Abu Bakar 01", wali: "H. Abdullah", no_wa: "6281234567801", status: "AKTIF" },
+          { id: "S002", nis: "202602", nama: "Fatimah Azzahra", kelas: "1 MTs B", kamar: "Khadijah 02", wali: "Drs. M. Ridwan", no_wa: "6281234567802", status: "AKTIF" },
+          { id: "S003", nis: "202603", nama: "Muhammad Fadhil", kelas: "2 MTs A", kamar: "Umar Bin Khattab", wali: "Ibu Siti Nurhaliza", no_wa: "6281234567803", status: "AKTIF" },
+          { id: "S004", nis: "202604", nama: "Zaskia Aurelia", kelas: "2 MTs B", kamar: "Aisyah 04", wali: "Bpk. Hendra Gunawan", no_wa: "6281234567804", status: "AKTIF" },
+          { id: "S005", nis: "202605", nama: "Bilal Al-Bantani", kelas: "3 MTs A", kamar: "Ali Bin Abi Thalib", wali: "H. Syarifuddin", no_wa: "6281234567805", status: "AKTIF" }
+        ];
+
+        dbState.pos_biaya = [
+          { id: "POS01", kode: "SYAHRIAH", nama: "Syahriah / SPP Bulanan", tipe: "BULANAN", nominal: 500000 },
+          { id: "POS02", kode: "KITAB", nama: "Uang Kitab & Modul Semester", tipe: "INSIDENTAL", nominal: 350000 },
+          { id: "POS03", kode: "GEDUNG", nama: "Infaq Pembangunan Asrama", tipe: "INSIDENTAL", nominal: 1500000 },
+          { id: "POS04", kode: "KESEHATAN", nama: "Iuran Poskestren & Obat", tipe: "BULANAN", nominal: 50000 }
+        ];
+
+        dbState.tagihan = [
+          {
+            id: "TAG-202610-202601-SYAHRIAH",
+            nis: "202601",
+            nama_santri: "Ahmad Royhan",
+            kelas: "1 MTs A",
+            id_pos: "POS01",
+            kode_pos: "SYAHRIAH",
+            nama_pos: "Syahriah / SPP Bulanan (Okt 2026)",
+            periode: "2026-10",
+            nominal_tagihan: 500000,
+            total_terbayar: 200000,
+            sisa_tunggakan: 300000,
+            status: "CICIL",
+            tanggal_terbit: "2026-10-01"
+          },
+          {
+            id: "TAG-202610-202602-SYAHRIAH",
+            nis: "202602",
+            nama_santri: "Fatimah Azzahra",
+            kelas: "1 MTs B",
+            id_pos: "POS01",
+            kode_pos: "SYAHRIAH",
+            nama_pos: "Syahriah / SPP Bulanan (Okt 2026)",
+            periode: "2026-10",
+            nominal_tagihan: 500000,
+            total_terbayar: 500000,
+            sisa_tunggakan: 0,
+            status: "LUNAS",
+            tanggal_terbit: "2026-10-01"
+          },
+          {
+            id: "TAG-202610-202603-SYAHRIAH",
+            nis: "202603",
+            nama_santri: "Muhammad Fadhil",
+            kelas: "2 MTs A",
+            id_pos: "POS01",
+            kode_pos: "SYAHRIAH",
+            nama_pos: "Syahriah / SPP Bulanan (Okt 2026)",
+            periode: "2026-10",
+            nominal_tagihan: 500000,
+            total_terbayar: 0,
+            sisa_tunggakan: 500000,
+            status: "BELUM",
+            tanggal_terbit: "2026-10-01"
+          },
+          {
+            id: "TAG-2026-202603-GEDUNG",
+            nis: "202603",
+            nama_santri: "Muhammad Fadhil",
+            kelas: "2 MTs A",
+            id_pos: "POS03",
+            kode_pos: "GEDUNG",
+            nama_pos: "Infaq Pembangunan Asrama",
+            periode: "2026",
+            nominal_tagihan: 1500000,
+            total_terbayar: 0,
+            sisa_tunggakan: 1500000,
+            status: "BELUM",
+            tanggal_terbit: "2026-07-15"
+          }
+        ];
+
+        dbState.transaksi = [
+          {
+            no_kuitansi: "KWT-20261005-0001",
+            id_tagihan: "TAG-202610-202601-SYAHRIAH",
+            nis: "202601",
+            nama_santri: "Ahmad Royhan",
+            nama_pos: "Syahriah / SPP Bulanan (Okt 2026)",
+            nominal_bayar: 200000,
+            sisa_setelah_bayar: 300000,
+            metode: "TUNAI",
+            catatan: "Cicilan ke-1 SPP Oktober",
+            tanggal_bayar: "2026-10-05T09:30:00",
+            operator: "admin@rzpaytren.com"
+          },
+          {
+            no_kuitansi: "KWT-20261010-0002",
+            id_tagihan: "TAG-202610-202602-SYAHRIAH",
+            nis: "202602",
+            nama_santri: "Fatimah Azzahra",
+            nama_pos: "Syahriah / SPP Bulanan (Okt 2026)",
+            nominal_bayar: 500000,
+            sisa_setelah_bayar: 0,
+            metode: "TRANSFER",
+            catatan: "Transfer via BSI",
+            tanggal_bayar: "2026-10-10T14:15:00",
+            operator: "admin@rzpaytren.com"
+          }
+        ];
+      }
+    }
+
+    // ==========================================
+    // 4. TOAST NOTIFICATION & CUSTOM MODAL
+    // ==========================================
+    window.showToast = function(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      
+      const icons = {
+        success: 'fa-circle-check text-emerald-500',
+        error: 'fa-circle-exclamation text-rose-500',
+        warning: 'fa-triangle-exclamation text-amber-500',
+        info: 'fa-circle-info text-sky-500'
+      };
+
+      toast.className = 'pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl bg-white shadow-xl border border-slate-100 text-xs font-semibold text-slate-800 transform transition-all duration-300 translate-y-2 opacity-0';
+      toast.innerHTML = `
+        <i class="fa-solid ${icons[type] || icons.info} text-base"></i>
+        <span>${message}</span>
+      `;
+
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 10);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-x-4');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    };
+
+    window.customConfirm = function(title, message, callback) {
+      const modal = document.getElementById('confirmModal');
+      document.getElementById('confirmTitle').innerText = title;
+      document.getElementById('confirmMessage').innerText = message;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      const btnOk = document.getElementById('confirmBtnOk');
+      const btnCancel = document.getElementById('confirmBtnCancel');
+
+      const cleanup = () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        btnOk.onclick = null;
+        btnCancel.onclick = null;
+      };
+
+      btnOk.onclick = () => {
+        cleanup();
+        callback(true);
+      };
+      btnCancel.onclick = () => {
+        cleanup();
+        callback(false);
+      };
+    };
+
+    // ==========================================
+    // 5. NAVIGASI HALAMAN (ROUTER)
+    // ==========================================
+    window.navigateTo = function(pageId) {
+      activePage = pageId;
+
+      // Update Tampilan Menu Sidebar & Bottom Nav
+      document.querySelectorAll('.nav-link').forEach(el => {
+        if (el.dataset.page === pageId) {
+          el.classList.add('bg-brand-50', 'text-brand-700', 'font-bold');
+          el.classList.remove('text-slate-600');
+        } else {
+          el.classList.remove('bg-brand-50', 'text-brand-700', 'font-bold');
+          el.classList.add('text-slate-600');
+        }
+      });
+
+      document.querySelectorAll('.mobile-nav-item').forEach(el => {
+        if (el.dataset.page === pageId) {
+          el.classList.add('text-brand-700');
+          el.classList.remove('text-slate-500');
+        } else {
+          el.classList.remove('text-brand-700');
+          el.classList.add('text-slate-500');
+        }
+      });
+
+      // Tampilkan Page View yang sesuai
+      document.querySelectorAll('.page-view').forEach(view => view.classList.add('hidden'));
+      const target = document.getElementById('view-' + pageId);
+      if (target) target.classList.remove('hidden');
+
+      // Update Header Info
+      const titles = {
+        dashboard: { title: "Dashboard Keuangan", subtitle: "Ringkasan kas, realisasi pembayaran, dan status tunggakan santri" },
+        santri: { title: "Data Santri", subtitle: "Pengelolaan ribuan profil santri, kelas, asrama, dan kontak wali" },
+        tagihan: { title: "Pos Tarif & Penerbitan Tagihan", subtitle: "Katalog iuran bulanan, tagihan insidental, dan generator massal" },
+        kasir: { title: "Kasir Pembayaran & Cetak Kuitansi", subtitle: "Pencatatan kas masuk aktual, pembayaran cicilan, dan kuitansi resmi" },
+        tunggakan: { title: "Pemantauan Tunggakan", subtitle: "Daftar santri menunggak dengan generator pesan penagihan WhatsApp santun" },
+        laporan: { title: "Laporan Kas & Audit Trail", subtitle: "Pemisahan mutlak potensi piutang dengan kas aktual riil" },
+        pengaturan: { title: "Pengaturan & Cadangan", subtitle: "Identitas pesantren, ubah kata sandi admin, dan ekspor/impor data JSON" }
+      };
+
+      if (titles[pageId]) {
+        document.getElementById('pageTitle').innerText = titles[pageId].title;
+        document.getElementById('pageSubtitle').innerText = titles[pageId].subtitle;
+      }
+
+      // Refresh Data Halaman Tertentu
+      if (pageId === 'dashboard') renderDashboard();
+      if (pageId === 'santri') renderSantriTable();
+      if (pageId === 'tagihan') { renderTagihanTable(); renderPosBiayaCards(); }
+      if (pageId === 'kasir') setupKasirPage();
+      if (pageId === 'tunggakan') renderTunggakanTable();
+      if (pageId === 'laporan') renderLaporanKas();
+    };
+
+    // Sub-tab switcher pada menu Tagihan
+    document.querySelectorAll('.sub-tab-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.sub-tab-btn').forEach(b => {
+          b.classList.remove('active', 'bg-brand-700', 'text-white');
+          b.classList.add('text-slate-600');
+        });
+        btn.classList.add('active', 'bg-brand-700', 'text-white');
+        btn.classList.remove('text-slate-600');
+
+        document.querySelectorAll('.sub-page-view').forEach(v => v.classList.add('hidden'));
+        const targetSub = document.getElementById(btn.dataset.target);
+        if (targetSub) targetSub.classList.remove('hidden');
+      });
+    });
+
+    // ==========================================
+    // 6. LOGIKA LOGIN & AUTENTIKASI ADMIN
+    // ==========================================
+    const loginForm = document.getElementById('loginForm');
+    const loginScreen = document.getElementById('loginScreen');
+    const appContainer = document.getElementById('appContainer');
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim();
+      const pass = document.getElementById('loginPassword').value;
+      const submitBtn = document.getElementById('btnLoginSubmit');
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Memeriksa kredensial...</span>`;
+
+      try {
+        if (!IS_PREVIEW && auth) {
+          // Mode Produksi Firebase Auth
+          const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+          currentUser = userCredential.user;
+        } else {
+          // Mode Preview / Client-Side Auth
+          if (pass === dbState.profil.password_admin || pass === 'admin123') {
+            currentUser = { email: email || 'admin@rzpaytren.com' };
+          } else {
+            throw new Error("Kata sandi salah. Gunakan 'admin123' untuk mode demo.");
+          }
+        }
+
+        // Sukses Login
+        loginScreen.classList.add('hidden');
+        appContainer.classList.remove('hidden');
+        document.getElementById('userEmailBadge').innerText = currentUser.email;
+        showToast("Selamat datang di RzPaytren, Bendahara!", "success");
+        navigateTo('dashboard');
+      } catch (err) {
+        showToast(err.message || "Gagal masuk. Periksa kembali email dan kata sandi.", "error");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<span>Masuk ke RzPaytren</span><i class="fa-solid fa-arrow-right text-xs"></i>`;
+      }
+    });
+
+    // Tombol Toggle Password
+    document.getElementById('toggleLoginPassword').addEventListener('click', function() {
+      const passInput = document.getElementById('loginPassword');
+      const icon = this.querySelector('i');
+      if (passInput.type === 'password') {
+        passInput.type = 'text';
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+      } else {
+        passInput.type = 'password';
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+      }
+    });
+
+    // Tombol Logout
+    const handleLogout = () => {
+      customConfirm("Keluar Sistem", "Apakah Anda yakin ingin mengakhiri sesi kasir ini?", async (ok) => {
+        if (!ok) return;
+        if (!IS_PREVIEW && auth) await signOut(auth);
+        currentUser = null;
+        appContainer.classList.add('hidden');
+        loginScreen.classList.remove('hidden');
+        showToast("Anda telah keluar dari akun.", "info");
+      });
+    };
+    document.getElementById('btnLogoutSide').addEventListener('click', handleLogout);
+
+    // ==========================================
+    // 7. DASHBOARD METRIK & LOGIKA BISNIS
+    // ==========================================
+    function renderDashboard() {
+      // 1. Kas Masuk Aktual (Uang riil di bendahara dari seluruh transaksi pembayaran)
+      const kasMasukAktual = dbState.transaksi.reduce((sum, tx) => sum + Number(tx.nominal_bayar || 0), 0);
+      document.getElementById('dashKasMasuk').innerText = formatRupiah(kasMasukAktual);
+
+      // 2. Total Tagihan Diterbitkan
+      const totalTagihan = dbState.tagihan.reduce((sum, tag) => sum + Number(tag.nominal_tagihan || 0), 0);
+      document.getElementById('dashTagihanTerbit').innerText = formatRupiah(totalTagihan);
+
+      // 3. Sisa Tunggakan Aktual
+      const totalTunggakan = dbState.tagihan.reduce((sum, tag) => sum + Number(tag.sisa_tunggakan || 0), 0);
+      document.getElementById('dashTotalTunggakan').innerText = formatRupiah(totalTunggakan);
+
+      // 4. Realisasi Persentase
+      const persen = totalTagihan > 0 ? Math.round(((totalTagihan - totalTunggakan) / totalTagihan) * 100) : 0;
+      document.getElementById('dashRealisasiPersen').innerText = `${persen}%`;
+      document.getElementById('dashProgressBar').style.width = `${persen}%`;
+
+      // Status Santri
+      const totalSantri = dbState.santri.filter(s => s.status === 'AKTIF').length;
+      document.getElementById('dashTotalSantri').innerText = `${totalSantri} Santri`;
+
+      // Santri yang memiliki tunggakan
+      const nunggakNisSet = new Set(dbState.tagihan.filter(t => t.sisa_tunggakan > 0).map(t => t.nis));
+      const santriNunggakCount = nunggakNisSet.size;
+      const santriLunasCount = Math.max(0, totalSantri - santriNunggakCount);
+
+      document.getElementById('dashSantriNunggak').innerText = `${santriNunggakCount} Santri`;
+      document.getElementById('dashSantriLunas').innerText = `${santriLunasCount} Santri`;
+
+      // 5 Transaksi Terakhir
+      const recentTx = [...dbState.transaksi].reverse().slice(0, 5);
+      const recentTbody = document.getElementById('dashTableRecentTx');
+      if (recentTx.length === 0) {
+        recentTbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">Belum ada transaksi kasir.</td></tr>`;
+      } else {
+        recentTbody.innerHTML = recentTx.map(tx => `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-2.5 font-mono font-bold text-slate-800">${tx.no_kuitansi}</td>
+            <td class="py-2.5 font-semibold text-slate-900">${tx.nama_santri}</td>
+            <td class="py-2.5 text-slate-500">${tx.nama_pos}</td>
+            <td class="py-2.5 text-right font-bold text-emerald-700">${formatRupiah(tx.nominal_bayar)}</td>
+            <td class="py-2.5 text-center">
+              <button onclick="previewKuitansiDirect('${tx.no_kuitansi}')" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-semibold transition">
+                <i class="fa-solid fa-receipt mr-1"></i>Kuitansi
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    // ==========================================
+    // 8. DATA SANTRI: CRUD & IMPORT/EXPORT
+    // ==========================================
+    function renderSantriTable() {
+      const q = document.getElementById('searchSantriInput').value.toLowerCase();
+      const filterKelas = document.getElementById('filterKelasSantri').value;
+      const tbody = document.getElementById('santriTableBody');
+
+      // Populate opsi filter kelas secara dinamis
+      const kelasSet = new Set(dbState.santri.map(s => s.kelas).filter(Boolean));
+      const selectKelas = document.getElementById('filterKelasSantri');
+      const curKelasVal = selectKelas.value;
+      selectKelas.innerHTML = '<option value="">Semua Kelas</option>' + 
+        Array.from(kelasSet).map(k => `<option value="${k}" ${k === curKelasVal ? 'selected' : ''}>${k}</option>`).join('');
+
+      let filtered = dbState.santri.filter(s => {
+        const matchQ = (s.nama || '').toLowerCase().includes(q) || 
+                       (s.nis || '').includes(q) || 
+                       (s.kamar || '').toLowerCase().includes(q);
+        const matchKelas = !filterKelas || s.kelas === filterKelas;
+        return matchQ && matchKelas;
+      });
+
+      document.getElementById('santriCountInfo').innerText = `Menampilkan ${filtered.length} dari ${dbState.santri.length} santri`;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400">Tidak ada data santri yang cocok.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(s => `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="py-3 px-4 font-mono font-bold text-slate-800">${s.nis}</td>
+          <td class="py-3 px-4 font-bold text-slate-900">${s.nama}</td>
+          <td class="py-3 px-4 text-slate-600">${s.kelas} <br><span class="text-[10px] text-slate-400">${s.kamar}</span></td>
+          <td class="py-3 px-4 text-slate-700">${s.wali}</td>
+          <td class="py-3 px-4 font-mono text-emerald-700">
+            <a href="https://wa.me/${s.no_wa}" target="_blank" class="hover:underline flex items-center gap-1">
+              <i class="fa-brands fa-whatsapp text-emerald-600"></i> ${s.no_wa}
+            </a>
+          </td>
+          <td class="py-3 px-4 text-center">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${s.status === 'AKTIF' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500'}">
+              ${s.status}
+            </span>
+          </td>
+          <td class="py-3 px-4 text-center space-x-1">
+            <button onclick="editSantri('${s.id}')" class="p-1.5 rounded-lg text-slate-400 hover:text-brand-700 hover:bg-slate-100 transition" title="Edit">
+              <i class="fa-solid fa-pen-to-square"></i>
+            </button>
+            <button onclick="deleteSantri('${s.id}')" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition" title="Hapus">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    document.getElementById('searchSantriInput').addEventListener('input', renderSantriTable);
+    document.getElementById('filterKelasSantri').addEventListener('change', renderSantriTable);
+
+    // Modal Santri Handler
+    document.getElementById('btnOpenModalSantri').addEventListener('click', () => {
+      document.getElementById('formSantri').reset();
+      document.getElementById('santriDocId').value = '';
+      document.getElementById('modalSantriTitle').innerText = 'Tambah Santri Baru';
+      openModal('modalSantri');
+    });
+
+    window.editSantri = function(id) {
+      const s = dbState.santri.find(x => x.id === id);
+      if (!s) return;
+      document.getElementById('santriDocId').value = s.id;
+      document.getElementById('santriNis').value = s.nis;
+      document.getElementById('santriNama').value = s.nama;
+      document.getElementById('santriKelas').value = s.kelas;
+      document.getElementById('santriKamar').value = s.kamar;
+      document.getElementById('santriWali').value = s.wali;
+      document.getElementById('santriWa').value = s.no_wa;
+      document.getElementById('santriStatus').value = s.status || 'AKTIF';
+      document.getElementById('modalSantriTitle').innerText = 'Edit Data Santri';
+      openModal('modalSantri');
+    };
+
+    window.deleteSantri = function(id) {
+      const s = dbState.santri.find(x => x.id === id);
+      if (!s) return;
+      customConfirm("Hapus Santri", `Apakah Anda yakin ingin menghapus data santri: ${s.nama} (${s.nis})?`, (ok) => {
+        if (!ok) return;
+        dbState.santri = dbState.santri.filter(x => x.id !== id);
+        showToast("Data santri berhasil dihapus.", "info");
+        renderSantriTable();
+        renderDashboard();
+      });
+    };
+
+    document.getElementById('formSantri').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const id = document.getElementById('santriDocId').value;
+      const nis = document.getElementById('santriNis').value.trim();
+      const nama = document.getElementById('santriNama').value.trim();
+      const kelas = document.getElementById('santriKelas').value.trim();
+      const kamar = document.getElementById('santriKamar').value.trim();
+      const wali = document.getElementById('santriWali').value.trim();
+      let no_wa = document.getElementById('santriWa').value.trim().replace(/\D/g, '');
+      if (no_wa.startsWith('0')) no_wa = '62' + no_wa.substring(1);
+      const status = document.getElementById('santriStatus').value;
+
+      if (!id) {
+        // Cek NIS Ganda
+        if (dbState.santri.some(s => s.nis === nis)) {
+          showToast("NIS sudah terdaftar untuk santri lain!", "error");
+          return;
+        }
+        dbState.santri.push({
+          id: 'S' + Date.now(),
+          nis, nama, kelas, kamar, wali, no_wa, status
+        });
+        showToast("Santri baru berhasil ditambahkan.", "success");
+      } else {
+        const idx = dbState.santri.findIndex(x => x.id === id);
+        if (idx !== -1) {
+          dbState.santri[idx] = { ...dbState.santri[idx], nis, nama, kelas, kamar, wali, no_wa, status };
+          showToast("Data santri berhasil diperbarui.", "success");
+        }
+      }
+
+      closeModal('modalSantri');
+      renderSantriTable();
+      renderDashboard();
+    });
+
+    // Ekspor Data Santri ke CSV
+    document.getElementById('btnExportSantriCsv').addEventListener('click', () => {
+      let csv = 'NIS,Nama,Kelas,Kamar,Nama Wali,No WhatsApp,Status\n';
+      dbState.santri.forEach(s => {
+        csv += `"${s.nis}","${s.nama}","${s.kelas}","${s.kamar}","${s.wali}","${s.no_wa}","${s.status}"\n`;
+      });
+      downloadFile(csv, `data-santri-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv');
+      showToast("Data santri berhasil diekspor.", "success");
+    });
+
+    // ==========================================
+    // 9. POS BIAYA & GENERATE TAGIHAN MASSAL
+    // ==========================================
+    function renderPosBiayaCards() {
+      const container = document.getElementById('posBiayaListContainer');
+      container.innerHTML = dbState.pos_biaya.map(p => `
+        <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">${p.kode}</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded ${p.tipe === 'BULANAN' ? 'bg-sky-50 text-sky-700' : 'bg-amber-50 text-amber-700'}">${p.tipe}</span>
+            </div>
+            <h4 class="font-bold text-slate-900 text-sm">${p.nama}</h4>
+            <p class="text-xl font-extrabold text-slate-800 mt-2">${formatRupiah(p.nominal)}</p>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-100 flex justify-end">
+            <button onclick="hapusPosBiaya('${p.id}')" class="text-xs text-rose-500 hover:text-rose-700 font-semibold flex items-center gap-1">
+              <i class="fa-solid fa-trash-can text-[11px]"></i> Hapus Pos
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('btnOpenModalPos').addEventListener('click', () => {
+      document.getElementById('formPosBiaya').reset();
+      openModal('modalPosBiaya');
+    });
+
+    document.getElementById('formPosBiaya').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const kode = document.getElementById('posKode').value.trim().toUpperCase();
+      const nama = document.getElementById('posNama').value.trim();
+      const tipe = document.getElementById('posTipe').value;
+      const nominal = Number(document.getElementById('posNominal').value);
+
+      if (dbState.pos_biaya.some(p => p.kode === kode)) {
+        showToast("Kode pos biaya sudah digunakan!", "error");
+        return;
+      }
+
+      dbState.pos_biaya.push({
+        id: 'POS' + Date.now(),
+        kode, nama, tipe, nominal
+      });
+
+      closeModal('modalPosBiaya');
+      showToast("Pos biaya baru berhasil ditambahkan.", "success");
+      renderPosBiayaCards();
+    });
+
+    window.hapusPosBiaya = function(id) {
+      customConfirm("Hapus Pos Biaya", "Menghapus pos ini tidak akan menghapus tagihan yang sudah terbit sebelumnya. Lanjutkan?", (ok) => {
+        if (!ok) return;
+        dbState.pos_biaya = dbState.pos_biaya.filter(p => p.id !== id);
+        renderPosBiayaCards();
+        showToast("Pos biaya dihapus.", "info");
+      });
+    };
+
+    // Tabel Tagihan
+    function renderTagihanTable() {
+      const q = document.getElementById('searchTagihanInput').value.toLowerCase();
+      const filterStatus = document.getElementById('filterStatusTagihan').value;
+      const filterPos = document.getElementById('filterPosTagihan').value;
+      const tbody = document.getElementById('tagihanTableBody');
+
+      // Populate opsi filter pos
+      const selectPos = document.getElementById('filterPosTagihan');
+      const curPosVal = selectPos.value;
+      selectPos.innerHTML = '<option value="">Semua Pos Biaya</option>' + 
+        dbState.pos_biaya.map(p => `<option value="${p.kode}" ${p.kode === curPosVal ? 'selected' : ''}>${p.nama}</option>`).join('');
+
+      let filtered = dbState.tagihan.filter(t => {
+        const matchQ = (t.nama_santri || '').toLowerCase().includes(q) || 
+                       (t.nis || '').includes(q) || 
+                       (t.nama_pos || '').toLowerCase().includes(q);
+        const matchStatus = !filterStatus || t.status === filterStatus;
+        const matchPos = !filterPos || t.kode_pos === filterPos;
+        return matchQ && matchStatus && matchPos;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-400">Tidak ada tagihan yang ditemukan.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(t => {
+        const badgeColors = {
+          LUNAS: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+          CICIL: 'bg-amber-50 text-amber-700 border-amber-200',
+          BELUM: 'bg-rose-50 text-rose-700 border-rose-200'
+        };
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3 px-4 font-mono font-bold text-[11px] text-slate-700">${t.id}</td>
+            <td class="py-3 px-4">
+              <span class="font-bold text-slate-900 block">${t.nama_santri}</span>
+              <span class="text-[10px] text-slate-400">NIS: ${t.nis} (${t.kelas})</span>
+            </td>
+            <td class="py-3 px-4">
+              <span class="font-semibold text-slate-800 block">${t.nama_pos}</span>
+              <span class="text-[10px] text-slate-400">Periode: ${t.periode}</span>
+            </td>
+            <td class="py-3 px-4 text-right font-semibold text-slate-800">${formatRupiah(t.nominal_tagihan)}</td>
+            <td class="py-3 px-4 text-right font-semibold text-emerald-600">${formatRupiah(t.total_terbayar)}</td>
+            <td class="py-3 px-4 text-right font-bold text-rose-600">${formatRupiah(t.sisa_tunggakan)}</td>
+            <td class="py-3 px-4 text-center">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${badgeColors[t.status] || 'bg-slate-100 text-slate-600'}">
+                ${t.status}
+              </span>
+            </td>
+            <td class="py-3 px-4 text-center">
+              ${t.status !== 'LUNAS' ? `
+                <button onclick="bayarTagihanDirect('${t.id}')" class="px-3 py-1 rounded-lg bg-brand-700 hover:bg-brand-800 text-white font-bold text-[11px] shadow-sm transition">
+                  <i class="fa-solid fa-cash-register mr-1"></i> Bayar
+                </button>
+              ` : `
+                <span class="text-[11px] text-emerald-600 font-bold"><i class="fa-solid fa-check"></i> Lunas</span>
+              `}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    document.getElementById('searchTagihanInput').addEventListener('input', renderTagihanTable);
+    document.getElementById('filterStatusTagihan').addEventListener('change', renderTagihanTable);
+    document.getElementById('filterPosTagihan').addEventListener('change', renderTagihanTable);
+
+    // Modal Generate Tagihan Massal
+    document.getElementById('btnOpenModalGenMassal').addEventListener('click', () => {
+      const posSelect = document.getElementById('genMassalPos');
+      posSelect.innerHTML = dbState.pos_biaya.map(p => `<option value="${p.id}">${p.nama} (${formatRupiah(p.nominal)})</option>`).join('');
+      
+      // Auto set nominal saat pos berubah
+      const updateNominal = () => {
+        const selected = dbState.pos_biaya.find(p => p.id === posSelect.value);
+        if (selected) document.getElementById('genMassalNominal').value = selected.nominal;
+      };
+      posSelect.onchange = updateNominal;
+      updateNominal();
+
+      // Periode default: Bulan berjalan YYYY-MM
+      const now = new Date();
+      const yr = now.getFullYear();
+      const mo = String(now.getMonth() + 1).padStart(2, '0');
+      document.getElementById('genMassalPeriode').value = `${yr}-${mo}`;
+
+      openModal('modalGenMassal');
+    });
+
+    document.getElementById('formGenMassal').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const posId = document.getElementById('genMassalPos').value;
+      const periode = document.getElementById('genMassalPeriode').value;
+      const nominal = Number(document.getElementById('genMassalNominal').value);
+      const pos = dbState.pos_biaya.find(p => p.id === posId);
+
+      if (!pos) return;
+
+      const activeSantri = dbState.santri.filter(s => s.status === 'AKTIF');
+      if (activeSantri.length === 0) {
+        showToast("Tidak ada santri dengan status aktif!", "warning");
+        return;
+      }
+
+      let generatedCount = 0;
+      let skippedCount = 0;
+
+      activeSantri.forEach(s => {
+        // ID Unik Tagihan untuk Mencegah Pencatatan Tagihan Ganda
+        const tagihanId = `TAG-${periode.replace('-', '')}-${s.nis}-${pos.kode}`;
+        
+        // Cek apakah tagihan untuk santri, pos, dan periode ini sudah ada
+        const existing = dbState.tagihan.some(t => t.id === tagihanId);
+        if (existing) {
+          skippedCount++;
+        } else {
+          dbState.tagihan.push({
+            id: tagihanId,
+            nis: s.nis,
+            nama_santri: s.nama,
+            kelas: s.kelas,
+            id_pos: pos.id,
+            kode_pos: pos.kode,
+            nama_pos: `${pos.nama} (${periode})`,
+            periode: periode,
+            nominal_tagihan: nominal,
+            total_terbayar: 0,
+            sisa_tunggakan: nominal,
+            status: "BELUM",
+            tanggal_terbit: new Date().toISOString().slice(0, 10)
+          });
+          generatedCount++;
+        }
+      });
+
+      closeModal('modalGenMassal');
+      showToast(`Sukses: ${generatedCount} tagihan diterbitkan. ${skippedCount > 0 ? `(${skippedCount} dilewati karena sudah ada)` : ''}`, "success");
+      renderTagihanTable();
+      renderDashboard();
+    });
+
+    // Tagihan Khusus Single
+    document.getElementById('btnOpenModalTagihanSingle').addEventListener('click', () => {
+      // Buka modal generate tapi ubah target ke single jika perlu atau gunakan alur cepat
+      document.getElementById('btnOpenModalGenMassal').click();
+    });
+
+    // ==========================================
+    // 10. KASIR TRANSAKSI, VALIDASI & KUITANSI
+    // ==========================================
+    let kasirSelectedSantri = null;
+    let kasirSelectedTagihan = null;
+
+    function setupKasirPage() {
+      // Reset State Kasir
+      kasirSelectedSantri = null;
+      kasirSelectedTagihan = null;
+      document.getElementById('kasirSearchSantri').value = '';
+      document.getElementById('kasirSantriSearchResults').classList.add('hidden');
+      document.getElementById('kasirSantriCard').classList.add('hidden');
+      document.getElementById('kasirTagihanList').innerHTML = `<p class="text-xs text-slate-400 py-6 text-center">Pilih santri terlebih dahulu untuk menampilkan tagihan yang belum lunas.</p>`;
+      document.getElementById('kasirCountTagihan').innerText = '0 tagihan';
+      updateKasirSubmitButton();
+    }
+
+    // Pencarian Cepat Santri di Kasir
+    const kasirSearchInput = document.getElementById('kasirSearchSantri');
+    const kasirResults = document.getElementById('kasirSantriSearchResults');
+
+    kasirSearchInput.addEventListener('input', (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      if (!q) {
+        kasirResults.classList.add('hidden');
+        return;
+      }
+
+      const matches = dbState.santri.filter(s => 
+        (s.nama || '').toLowerCase().includes(q) || 
+        (s.nis || '').includes(q)
+      ).slice(0, 6);
+
+      if (matches.length === 0) {
+        kasirResults.innerHTML = `<div class="p-3 text-slate-400 text-center">Santri tidak ditemukan</div>`;
+      } else {
+        kasirResults.innerHTML = matches.map(s => `
+          <div class="p-2.5 hover:bg-slate-50 cursor-pointer flex items-center justify-between" onclick="selectSantriKasir('${s.id}')">
+            <div>
+              <p class="font-bold text-slate-800">${s.nama}</p>
+              <p class="text-[10px] text-slate-400">NIS: ${s.nis} • ${s.kelas}</p>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-300 text-xs"></i>
+          </div>
+        `).join('');
+      }
+      kasirResults.classList.remove('hidden');
+    });
+
+    window.selectSantriKasir = function(santriId) {
+      const s = dbState.santri.find(x => x.id === santriId);
+      if (!s) return;
+      kasirSelectedSantri = s;
+      kasirResults.classList.add('hidden');
+      kasirSearchInput.value = '';
+
+      // Tampilkan Card Santri
+      document.getElementById('kasirSantriNis').innerText = `NIS ${s.nis}`;
+      document.getElementById('kasirSantriNama').innerText = s.nama;
+      document.getElementById('kasirSantriKelasKamar').innerText = `${s.kelas} • ${s.kamar}`;
+      document.getElementById('kasirSantriWali').innerText = s.wali;
+      document.getElementById('kasirSantriWa').innerText = s.no_wa;
+      document.getElementById('kasirSantriCard').classList.remove('hidden');
+
+      // Muat tagihan yang belum lunas
+      renderKasirSantriTagihan(s.nis);
+    };
+
+    document.getElementById('btnResetSantriKasir').addEventListener('click', setupKasirPage);
+
+    function renderKasirSantriTagihan(nis) {
+      const tagihans = dbState.tagihan.filter(t => t.nis === nis && t.sisa_tunggakan > 0);
+      const listContainer = document.getElementById('kasirTagihanList');
+      document.getElementById('kasirCountTagihan').innerText = `${tagihans.length} tagihan aktif`;
+
+      if (tagihans.length === 0) {
+        listContainer.innerHTML = `
+          <div class="p-4 rounded-xl bg-emerald-50 text-emerald-800 text-center text-xs">
+            <i class="fa-solid fa-circle-check text-emerald-600 text-base mb-1 block"></i>
+            Alhamdulillah! Santri ini telah melunasi seluruh tagihan.
+          </div>
+        `;
+        selectTagihanForKasir(null);
+        return;
+      }
+
+      listContainer.innerHTML = tagihans.map(t => `
+        <div class="p-3 rounded-xl border border-slate-200 hover:border-brand-600 bg-white cursor-pointer transition flex items-center justify-between tagihan-item-card" id="card-tag-${t.id}" onclick="selectTagihanForKasir('${t.id}')">
+          <div>
+            <p class="font-bold text-slate-800 text-xs">${t.nama_pos}</p>
+            <p class="text-[10px] text-slate-400">Total: ${formatRupiah(t.nominal_tagihan)} | Sudah Bayar: ${formatRupiah(t.total_terbayar)}</p>
+          </div>
+          <div class="text-right">
+            <span class="text-xs font-black text-rose-600 block">${formatRupiah(t.sisa_tunggakan)}</span>
+            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded ${t.status === 'CICIL' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'}">${t.status}</span>
+          </div>
+        </div>
+      `).join('');
+
+      // Auto pilih tagihan pertama jika tersedia
+      if (tagihans.length > 0) {
+        selectTagihanForKasir(tagihans[0].id);
+      }
+    }
+
+    window.selectTagihanForKasir = function(tagihanId) {
+      document.querySelectorAll('.tagihan-item-card').forEach(c => c.classList.remove('border-brand-600', 'bg-brand-50/20', 'ring-2', 'ring-brand-500/20'));
+      
+      if (!tagihanId) {
+        kasirSelectedTagihan = null;
+        document.getElementById('kasirSelectedPosName').innerText = "Belum ada tagihan yang dipilih";
+        document.getElementById('kasirSelectedSisa').innerText = "Rp 0";
+        document.getElementById('kasirNominalBayar').value = '';
+        updateKasirSubmitButton();
+        return;
+      }
+
+      const t = dbState.tagihan.find(x => x.id === tagihanId);
+      if (!t) return;
+      kasirSelectedTagihan = t;
+
+      const card = document.getElementById(`card-tag-${t.id}`);
+      if (card) card.classList.add('border-brand-600', 'bg-brand-50/20', 'ring-2', 'ring-brand-500/20');
+
+      document.getElementById('kasirSelectedPosName').innerText = `${t.nama_pos} (${t.nama_santri})`;
+      document.getElementById('kasirSelectedSisa').innerText = formatRupiah(t.sisa_tunggakan);
+
+      // Sinkronkan nominal input dengan sisa tunggakan
+      syncKasirNominal();
+      updateKasirSubmitButton();
+    };
+
+    function syncKasirNominal() {
+      if (!kasirSelectedTagihan) return;
+      const type = document.querySelector('input[name="bayarType"]:checked').value;
+      const nominalInput = document.getElementById('kasirNominalBayar');
+      
+      if (type === 'LUNAS') {
+        nominalInput.value = kasirSelectedTagihan.sisa_tunggakan;
+        nominalInput.readOnly = true;
+        nominalInput.classList.add('bg-slate-50');
+      } else {
+        nominalInput.readOnly = false;
+        nominalInput.classList.remove('bg-slate-50');
+        if (Number(nominalInput.value) > kasirSelectedTagihan.sisa_tunggakan || Number(nominalInput.value) <= 0) {
+          nominalInput.value = Math.min(100000, kasirSelectedTagihan.sisa_tunggakan);
+        }
+      }
+      validateKasirNominal();
+    }
+
+    document.querySelectorAll('input[name="bayarType"]').forEach(radio => {
+      radio.addEventListener('change', syncKasirNominal);
+    });
+
+    const kasirNominalInput = document.getElementById('kasirNominalBayar');
+    kasirNominalInput.addEventListener('input', validateKasirNominal);
+
+    function validateKasirNominal() {
+      if (!kasirSelectedTagihan) {
+        updateKasirSubmitButton();
+        return;
+      }
+
+      const val = Number(kasirNominalInput.value);
+      const sisa = kasirSelectedTagihan.sisa_tunggakan;
+      const warning = document.getElementById('kasirNominalWarning');
+
+      if (val <= 0) {
+        warning.innerText = "Nominal pembayaran harus lebih besar dari Rp 0.";
+        warning.classList.remove('hidden');
+        updateKasirSubmitButton(false);
+      } else if (val > sisa) {
+        warning.innerText = `Nominal tidak boleh melebihi sisa tunggakan (${formatRupiah(sisa)}).`;
+        warning.classList.remove('hidden');
+        updateKasirSubmitButton(false);
+      } else {
+        warning.classList.add('hidden');
+        updateKasirSubmitButton(true);
+      }
+    }
+
+    function updateKasirSubmitButton(isValid = false) {
+      const btn = document.getElementById('btnSubmitPembayaran');
+      if (isValid && kasirSelectedTagihan && kasirSelectedSantri) {
+        btn.disabled = false;
+        btn.classList.remove('bg-slate-300', 'cursor-not-allowed');
+        btn.classList.add('bg-brand-700', 'hover:bg-brand-800', 'shadow-brand-700/25');
+        btn.innerHTML = `<i class="fa-solid fa-check"></i><span>Simpan Pembayaran & Terbitkan Kuitansi</span>`;
+      } else {
+        btn.disabled = true;
+        btn.classList.add('bg-slate-300', 'cursor-not-allowed');
+        btn.classList.remove('bg-brand-700', 'hover:bg-brand-800', 'shadow-brand-700/25');
+        btn.innerHTML = `<i class="fa-solid fa-lock"></i><span>Simpan Pembayaran & Terbitkan Kuitansi</span>`;
+      }
+    }
+
+    // Tombol Eksekusi Pembayaran Kasir (Dilengkapi Proteksi Anti-Klik Ganda)
+    const btnSubmitKasir = document.getElementById('btnSubmitPembayaran');
+    btnSubmitKasir.addEventListener('click', async () => {
+      if (!kasirSelectedTagihan || !kasirSelectedSantri) return;
+
+      const nominal = Number(kasirNominalInput.value);
+      if (nominal <= 0 || nominal > kasirSelectedTagihan.sisa_tunggakan) {
+        showToast("Nominal pembayaran tidak valid!", "error");
+        return;
+      }
+
+      // KUNCI TOMBOL SEKETIKA UNTUK MENCEGAH TRANSAKSI GANDA
+      btnSubmitKasir.disabled = true;
+      btnSubmitKasir.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Memproses Kasir...</span>`;
+
+      try {
+        const metode = document.getElementById('kasirMetode').value;
+        const catatan = document.getElementById('kasirCatatan').value.trim();
+
+        // 1. Generate Nomor Kuitansi Unik Berdasarkan Timestamp
+        const now = new Date();
+        const yyyymmdd = now.toISOString().slice(0, 10).replace(/-/g, '');
+        const randomNum = Math.floor(1000 + Math.random() * 9000);
+        const noKuitansi = `KWT-${yyyymmdd}-${randomNum}`;
+
+        // 2. Hitung Sisa Tunggakan Baru
+        const sisaSebelumnya = kasirSelectedTagihan.sisa_tunggakan;
+        const sisaBaru = Math.max(0, sisaSebelumnya - nominal);
+        const terbayarBaru = kasirSelectedTagihan.total_terbayar + nominal;
+        const statusBaru = sisaBaru === 0 ? "LUNAS" : "CICIL";
+
+        // 3. Update Dokumen Tagihan
+        const tagIdx = dbState.tagihan.findIndex(t => t.id === kasirSelectedTagihan.id);
+        if (tagIdx !== -1) {
+          dbState.tagihan[tagIdx].total_terbayar = terbayarBaru;
+          dbState.tagihan[tagIdx].sisa_tunggakan = sisaBaru;
+          dbState.tagihan[tagIdx].status = statusBaru;
+        }
+
+        // 4. Catat ke Jurnal Kas Masuk Transaksi
+        const transaksiBaru = {
+          no_kuitansi: noKuitansi,
+          id_tagihan: kasirSelectedTagihan.id,
+          nis: kasirSelectedSantri.nis,
+          nama_santri: kasirSelectedSantri.nama,
+          kelas: kasirSelectedSantri.kelas,
+          nama_pos: kasirSelectedTagihan.nama_pos,
+          nominal_bayar: nominal,
+          sisa_setelah_bayar: sisaBaru,
+          metode: metode,
+          catatan: catatan || (statusBaru === 'LUNAS' ? 'Pelunasan tagihan' : 'Pembayaran cicilan'),
+          tanggal_bayar: now.toISOString(),
+          operator: currentUser ? currentUser.email : 'admin@rzpaytren.com'
+        };
+
+        dbState.transaksi.push(transaksiBaru);
+
+        // Siapkan Data Kuitansi
+        currentKuitansiData = {
+          ...transaksiBaru,
+          wali: kasirSelectedSantri.wali,
+          no_wa: kasirSelectedSantri.no_wa,
+          status_tagihan: statusBaru
+        };
+
+        showToast(`Pembayaran ${formatRupiah(nominal)} berhasil dicatat!`, "success");
+
+        // Buka Kuitansi Modal
+        renderModalKuitansi(currentKuitansiData);
+
+        // Reset form kasir
+        document.getElementById('kasirCatatan').value = '';
+        renderKasirSantriTagihan(kasirSelectedSantri.nis);
+        renderDashboard();
+      } catch (err) {
+        showToast("Terjadi kesalahan saat memproses kasir: " + err.message, "error");
+      } finally {
+        btnSubmitKasir.disabled = false;
+        updateKasirSubmitButton(false);
+      }
+    });
+
+    // Pintasan Bayar Tagihan Langsung dari Tabel Tagihan
+    window.bayarTagihanDirect = function(tagihanId) {
+      const tag = dbState.tagihan.find(t => t.id === tagihanId);
+      if (!tag) return;
+      navigateTo('kasir');
+      selectSantriKasir(dbState.santri.find(s => s.nis === tag.nis)?.id);
+      setTimeout(() => {
+        selectTagihanForKasir(tag.id);
+      }, 100);
+    };
+
+    // Pintasan Quick Kasir di Header
+    document.getElementById('btnQuickKasir').addEventListener('click', () => navigateTo('kasir'));
+
+    // ==========================================
+    // 11. CETAK KUITANSI & PENGIRIMAN WHATSAPP
+    // ==========================================
+    function renderModalKuitansi(kwt) {
+      document.getElementById('kwtPesantrenName').innerText = dbState.profil.nama_pesantren.toUpperCase();
+      document.getElementById('kwtPesantrenAlamat').innerText = dbState.profil.alamat;
+      document.getElementById('kwtBendaharaNama').innerText = dbState.profil.bendahara;
+
+      document.getElementById('kwtNoKuitansi').innerText = kwt.no_kuitansi;
+      document.getElementById('kwtTanggal').innerText = formatTanggalIndo(kwt.tanggal_bayar) + ' ' + new Date(kwt.tanggal_bayar).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('kwtSantriNama').innerText = kwt.nama_santri;
+      document.getElementById('kwtSantriNisKelas').innerText = `${kwt.nis} / ${kwt.kelas}`;
+      document.getElementById('kwtPosName').innerText = kwt.nama_pos;
+      document.getElementById('kwtMetode').innerText = kwt.metode;
+      document.getElementById('kwtNominalBayar').innerText = formatRupiah(kwt.nominal_bayar);
+      document.getElementById('kwtSisaTunggakan').innerText = formatRupiah(kwt.sisa_setelah_bayar);
+      document.getElementById('kwtStatusTagihan').innerText = kwt.status_tagihan;
+
+      openModal('modalKuitansi');
+    }
+
+    window.previewKuitansiDirect = function(noKwt) {
+      const tx = dbState.transaksi.find(t => t.no_kuitansi === noKwt);
+      if (!tx) return;
+      const s = dbState.santri.find(x => x.nis === tx.nis) || {};
+      renderModalKuitansi({
+        ...tx,
+        wali: s.wali || 'Wali Santri',
+        no_wa: s.no_wa || '',
+        status_tagihan: tx.sisa_setelah_bayar === 0 ? 'LUNAS' : 'DICICIL'
+      });
+    };
+
+    document.getElementById('btnCetakKuitansi').addEventListener('click', () => {
+      window.print();
+    });
+
+    // Kirim Pesan Konfirmasi Pembayaran Resmi ke WhatsApp Wali
+    document.getElementById('btnSendKuitansiWa').addEventListener('click', () => {
+      if (!currentKuitansiData) return;
+      const kwt = currentKuitansiData;
+      let phone = (kwt.no_wa || '').replace(/\D/g, '');
+      if (phone.startsWith('0')) phone = '62' + phone.substring(1);
+
+      const pesan = 
+`*BUKTI PEMBAYARAN RESMI PESANTREN*
+*${dbState.profil.nama_pesantren.toUpperCase()}*
+---------------------------------------
+No. Kuitansi: ${kwt.no_kuitansi}
+Tanggal: ${formatTanggalIndo(kwt.tanggal_bayar)}
+
+Telah terima dari:
+Nama Santri: *${kwt.nama_santri}*
+NIS / Kelas: ${kwt.nis} / ${kwt.kelas}
+Untuk Pembayaran: *${kwt.nama_pos}*
+Metode: ${kwt.metode}
+
+*JUMLAH DITERIMA: ${formatRupiah(kwt.nominal_bayar)}*
+Status Tagihan: *${kwt.status_tagihan}*
+Sisa Tunggakan Pos Ini: *${formatRupiah(kwt.sisa_setelah_bayar)}*
+Catatan: ${kwt.catatan}
+---------------------------------------
+_Jazakumullahu khairan katsiran atas amanah dan pembayarannya. Semoga ananda senantiasa berkah dan istiqomah dalam menuntut ilmu._
+
+_Bendahara: ${dbState.profil.bendahara}_
+_Kontak Resmi: ${dbState.profil.kontak}_`;
+
+      const url = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(pesan)}`;
+      window.open(url, '_blank');
+    });
+
+    // ==========================================
+    // 12. PEMANTAUAN TUNGGAKAN & WA PENAGIHAN
+    // ==========================================
+    function renderTunggakanTable() {
+      const q = document.getElementById('searchTunggakanInput').value.toLowerCase();
+      const filterKelas = document.getElementById('filterKelasTunggakan').value;
+      const tbody = document.getElementById('tunggakanTableBody');
+
+      // Populate opsi kelas
+      const kelasSet = new Set(dbState.santri.map(s => s.kelas).filter(Boolean));
+      const selectKelas = document.getElementById('filterKelasTunggakan');
+      const curKelasVal = selectKelas.value;
+      selectKelas.innerHTML = '<option value="">Semua Kelas</option>' + 
+        Array.from(kelasSet).map(k => `<option value="${k}" ${k === curKelasVal ? 'selected' : ''}>${k}</option>`).join('');
+
+      // Filter santri aktif yang punya tunggakan
+      let rekapTunggakan = [];
+      let totalSemuaPiutang = 0;
+
+      dbState.santri.forEach(s => {
+        const santriTagihans = dbState.tagihan.filter(t => t.nis === s.nis && t.sisa_tunggakan > 0);
+        if (santriTagihans.length > 0) {
+          const totalTunggakanSantri = santriTagihans.reduce((sum, t) => sum + t.sisa_tunggakan, 0);
+          totalSemuaPiutang += totalTunggakanSantri;
+
+          const matchQ = (s.nama || '').toLowerCase().includes(q) || (s.nis || '').includes(q);
+          const matchKelas = !filterKelas || s.kelas === filterKelas;
+
+          if (matchQ && matchKelas) {
+            rekapTunggakan.push({
+              santri: s,
+              tagihans: santriTagihans,
+              total_tunggakan: totalTunggakanSantri
+            });
+          }
+        }
+      });
+
+      document.getElementById('tunggakanTotalAccum').innerText = formatRupiah(totalSemuaPiutang);
+
+      if (rekapTunggakan.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400">Semua santri tertib dan bebas dari tunggakan.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = rekapTunggakan.map(item => {
+        const s = item.santri;
+        const listPosText = item.tagihans.map(t => `<span class="inline-block bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px] mr-1 mb-1">${t.nama_pos}: <b>${formatRupiah(t.sisa_tunggakan)}</b></span>`).join('');
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3 px-4">
+              <span class="font-bold text-slate-900 block">${s.nama}</span>
+              <span class="text-[10px] text-slate-400 font-mono">NIS: ${s.nis}</span>
+            </td>
+            <td class="py-3 px-4 text-slate-600">${s.kelas} <br><span class="text-[10px] text-slate-400">${s.kamar}</span></td>
+            <td class="py-3 px-4">
+              <span class="font-semibold text-slate-800 block">${s.wali}</span>
+              <span class="text-[10px] text-slate-400 font-mono">${s.no_wa}</span>
+            </td>
+            <td class="py-3 px-4 max-w-xs">${listPosText}</td>
+            <td class="py-3 px-4 text-right font-black text-rose-600">${formatRupiah(item.total_tunggakan)}</td>
+            <td class="py-3 px-4 text-center">
+              <button onclick="kirimWaPenagihan('${s.nis}')" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition flex items-center justify-center gap-1.5 mx-auto">
+                <i class="fa-brands fa-whatsapp text-sm"></i>
+                <span>Ingatkan WA</span>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    document.getElementById('searchTunggakanInput').addEventListener('input', renderTunggakanTable);
+    document.getElementById('filterKelasTunggakan').addEventListener('change', renderTunggakanTable);
+
+    // Kirim Reminder Tagihan WhatsApp Santun & Terperinci
+    window.kirimWaPenagihan = function(nis) {
+      const s = dbState.santri.find(x => x.nis === nis);
+      if (!s) return;
+
+      const unpaidTags = dbState.tagihan.filter(t => t.nis === nis && t.sisa_tunggakan > 0);
+      if (unpaidTags.length === 0) {
+        showToast("Santri tidak memiliki tagihan aktif.", "info");
+        return;
+      }
+
+      const totalTunggakan = unpaidTags.reduce((sum, t) => sum + t.sisa_tunggakan, 0);
+      let rincianPos = unpaidTags.map((t, idx) => `${idx + 1}. ${t.nama_pos}: ${formatRupiah(t.sisa_tunggakan)}`).join('\n');
+
+      let phone = (s.no_wa || '').replace(/\D/g, '');
+      if (phone.startsWith('0')) phone = '62' + phone.substring(1);
+
+      const pesan = 
+`*PEMBERITAHUAN ADMINISTRASI KEUANGAN SANTRI*
+*${dbState.profil.nama_pesantren.toUpperCase()}*
+---------------------------------------
+Kepada Yth.
+Bapak/Ibu: *${s.wali}* (Wali dari *${s.nama}*)
+NIS: ${s.nis} | Kelas: ${s.kelas}
+
+_Assalamu'alaikum Warahmatullahi Wabarakatuh_
+
+Semoga Bapak/Ibu dan keluarga senantiasa berada dalam lindungan Allah SWT.
+
+Berdasarkan pencatatan administrasi keuangan madrasah/pesantren hingga saat ini, kami menyampaikan ringkasan kewajiban administrasi santri yang belum terselesaikan:
+
+${rincianPos}
+
+*TOTAL KEWAJIBAN: ${formatRupiah(totalTunggakan)}*
+---------------------------------------
+Pembayaran dapat disalurkan secara langsung ke kantor bendahara pesantren, atau melalui transfer ke rekening resmi:
+
+*${dbState.profil.rekening}*
+
+Konfirmasi bukti transfer dapat dikirimkan kembali ke nomor ini. Jika pembayaran telah dilakukan, mohon abaikan pesan ini.
+
+_Wassalamu'alaikum Warahmatullahi Wabarakatuh_
+
+*Bendahara Keuangan:*
+${dbState.profil.bendahara}
+${dbState.profil.kontak}`;
+
+      const url = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(pesan)}`;
+      window.open(url, '_blank');
+    };
+
+    // ==========================================
+    // 13. LAPORAN KEUANGAN & AUDIT TRAIL KAS
+    // ==========================================
+    function renderLaporanKas() {
+      const startDate = document.getElementById('lapFilterStartDate').value;
+      const endDate = document.getElementById('lapFilterEndDate').value;
+      const filterMetode = document.getElementById('lapFilterMetode').value;
+      const tbody = document.getElementById('lapTableBody');
+
+      let filtered = dbState.transaksi.filter(tx => {
+        const txDate = tx.tanggal_bayar.slice(0, 10);
+        const matchStart = !startDate || txDate >= startDate;
+        const matchEnd = !endDate || txDate <= endDate;
+        const matchMetode = !filterMetode || tx.metode === filterMetode;
+        return matchStart && matchEnd && matchMetode;
+      });
+
+      const totalKasMasuk = filtered.reduce((sum, tx) => sum + tx.nominal_bayar, 0);
+      document.getElementById('lapSubtotalKas').innerText = `Total Masuk: ${formatRupiah(totalKasMasuk)}`;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400">Tidak ada transaksi kas pada periode yang dipilih.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = [...filtered].reverse().map(tx => `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="py-3 px-4 font-mono font-bold text-slate-800">${tx.no_kuitansi}</td>
+          <td class="py-3 px-4 text-slate-500">${formatTanggalIndo(tx.tanggal_bayar)}<br><span class="text-[10px] text-slate-400">${new Date(tx.tanggal_bayar).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span></td>
+          <td class="py-3 px-4">
+            <span class="font-bold text-slate-900 block">${tx.nama_santri}</span>
+            <span class="text-[10px] text-slate-400 font-mono">NIS: ${tx.nis}</span>
+          </td>
+          <td class="py-3 px-4 font-semibold text-slate-700">${tx.nama_pos}</td>
+          <td class="py-3 px-4">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${tx.metode === 'TUNAI' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-sky-50 text-sky-700 border border-sky-200'}">${tx.metode}</span>
+          </td>
+          <td class="py-3 px-4 text-right font-black text-emerald-700">${formatRupiah(tx.nominal_bayar)}</td>
+          <td class="py-3 px-4 text-center">
+            <button onclick="previewKuitansiDirect('${tx.no_kuitansi}')" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition" title="Lihat & Cetak Kuitansi">
+              <i class="fa-solid fa-receipt"></i> Kuitansi
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    document.getElementById('lapFilterStartDate').addEventListener('change', renderLaporanKas);
+    document.getElementById('lapFilterEndDate').addEventListener('change', renderLaporanKas);
+    document.getElementById('lapFilterMetode').addEventListener('change', renderLaporanKas);
+
+    // Ekspor Jurnal Kas ke CSV
+    document.getElementById('btnExportLaporanCsv').addEventListener('click', () => {
+      let csv = 'No Kuitansi,Waktu,NIS,Nama Santri,Kelas,Pos Biaya,Metode,Nominal Bayar,Sisa Tunggakan,Catatan,Operator\n';
+      dbState.transaksi.forEach(tx => {
+        csv += `"${tx.no_kuitansi}","${tx.tanggal_bayar}","${tx.nis}","${tx.nama_santri}","${tx.kelas || ''}","${tx.nama_pos}","${tx.metode}","${tx.nominal_bayar}","${tx.sisa_setelah_bayar}","${tx.catatan}","${tx.operator}"\n`;
+      });
+      downloadFile(csv, `jurnal-kas-pesantren-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv');
+      showToast("Laporan kas berhasil diekspor.", "success");
+    });
+
+    // ==========================================
+    // 14. PENGATURAN, UBAH PASSWORD & BACKUP
+    // ==========================================
+    // Profil Pesantren
+    document.getElementById('formProfilPesantren').addEventListener('submit', (e) => {
+      e.preventDefault();
+      dbState.profil.nama_pesantren = document.getElementById('cfgNamaPesantren').value.trim();
+      dbState.profil.alamat = document.getElementById('cfgAlamatPesantren').value.trim();
+      dbState.profil.kontak = document.getElementById('cfgKontakPesantren').value.trim();
+      dbState.profil.bendahara = document.getElementById('cfgBendaharaPesantren').value.trim();
+      dbState.profil.rekening = document.getElementById('cfgRekeningPesantren').value.trim();
+
+      document.getElementById('sidePesantrenName').innerText = dbState.profil.nama_pesantren;
+      showToast("Profil lembaga berhasil disimpan.", "success");
+    });
+
+    // Ubah Password Admin
+    document.getElementById('formGantiPassword').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const p1 = document.getElementById('cfgNewPassword').value;
+      const p2 = document.getElementById('cfgConfirmPassword').value;
+
+      if (p1 !== p2) {
+        showToast("Konfirmasi kata sandi tidak cocok!", "error");
+        return;
+      }
+
+      try {
+        if (!IS_PREVIEW && auth && auth.currentUser) {
+          await updatePassword(auth.currentUser, p1);
+        } else {
+          dbState.profil.password_admin = p1;
+        }
+        document.getElementById('formGantiPassword').reset();
+        showToast("Kata sandi admin berhasil diperbarui!", "success");
+      } catch (err) {
+        showToast("Gagal memperbarui sandi: " + err.message, "error");
+      }
+    });
+
+    // Unduh Backup JSON Portabel
+    document.getElementById('btnDownloadBackup').addEventListener('click', () => {
+      const backupData = {
+        metadata: {
+          app: "RzPaytren",
+          version: "1.0.0",
+          export_date: new Date().toISOString()
+        },
+        database: dbState
+      };
+      const jsonStr = JSON.stringify(backupData, null, 2);
+      downloadFile(jsonStr, `backup-rzpaytren-${new Date().toISOString().slice(0, 10)}.json`, 'application/json');
+      showToast("Berkas cadangan JSON berhasil diunduh.", "success");
+    });
+
+    // Restore Backup JSON
+    document.getElementById('inputRestoreFile').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const parsed = JSON.parse(evt.target.result);
+          if (!parsed.database || !parsed.database.santri) {
+            throw new Error("Format berkas cadangan tidak valid.");
+          }
+
+          customConfirm("Pemulihan Basis Data", "Memulihkan data akan menggantikan seluruh data berjalan saat ini dengan data dari berkas cadangan. Lanjutkan?", (ok) => {
+            if (!ok) return;
+            dbState = parsed.database;
+            showToast("Basis data berhasil dipulihkan!", "success");
+            navigateTo('dashboard');
+          });
+        } catch (err) {
+          showToast("Gagal membaca berkas cadangan: " + err.message, "error");
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+
+    // Helper Download File
+    function downloadFile(content, fileName, contentType) {
+      const a = document.createElement("a");
+      const file = new Blob([content], { type: contentType });
+      a.href = URL.createObjectURL(file);
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    // Modal Helpers
+    function openModal(id) {
+      const m = document.getElementById(id);
+      if (m) {
+        m.classList.remove('hidden');
+        m.classList.add('flex');
+      }
+    }
+
+    function closeModal(id) {
+      const m = document.getElementById(id);
+      if (m) {
+        m.classList.add('hidden');
+        m.classList.remove('flex');
+      }
+    }
+
+    document.querySelectorAll('.modal-close-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        closeModal(btn.dataset.modal);
+      });
+    });
+
+    // Event Delegation Navigasi
+    document.querySelectorAll('.nav-link, .mobile-nav-item').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        navigateTo(link.dataset.page);
+      });
+    });
+
+    // ==========================================
+    // 15. DYNAMIC SERVICE WORKER PWA (1 FILE)
+    // ==========================================
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        const swScript = `
+          const CACHE_NAME = 'rzpaytren-v1';
+          self.addEventListener('install', (e) => self.skipWaiting());
+          self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+          self.addEventListener('fetch', (e) => {
+            e.respondWith(
+              fetch(e.request).catch(() => caches.match(e.request))
+            );
+          });
+        `;
+        const blob = new Blob([swScript], { type: 'application/javascript' });
+        const swUrl = URL.createObjectURL(blob);
+        navigator.serviceWorker.register(swUrl).catch(err => {
+          // SW registration silent fallback
+        });
+      });
+    }
+
+    // Inisialisasi awal saat window dimuat
+    window.addEventListener('DOMContentLoaded', () => {
+      autoSetupDatabase();
+    });
+  </script>
+</body>
+</html>
